@@ -1,0 +1,11 @@
+[package]
+name = "qmk_hid"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.0", features = ["derive"] }
+
+[dependencies.hidapi]
+version = "2.0.2"
+#features = ["linux-static-hidraw"]
