@@ -26,7 +26,7 @@ jobs:
   #      path: target/x86_64-unknown-freebsd/debug/qmk_hid
 
   build:
-    name: Build Linux and UEFI
+    name: Build Linux
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v3
@@ -75,6 +75,9 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: sudo apt-get install -y libudev-dev
 
     - name: Setup Rust toolchain
       run: rustup show
