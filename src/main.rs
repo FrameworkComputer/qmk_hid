@@ -2,7 +2,7 @@ use clap::Parser;
 
 extern crate hidapi;
 
-use hidapi::{HidApi, HidDevice, DeviceInfo};
+use hidapi::{DeviceInfo, HidApi, HidDevice};
 
 /// RAW HID and VIA commandline for QMK devices
 #[derive(Parser, Debug)]
@@ -66,7 +66,6 @@ struct ClapCli {
     // - backlight
     // - eeprom reset
     // - audio
-
     /// Jump to the bootloader
     #[arg(long)]
     bootloader: bool,
@@ -87,17 +86,17 @@ const CONSUMER_USAGE_PAGE: u16 = 0x0C;
 //const PROTOCOL_VER_MSG_ID: u8;
 #[repr(u8)]
 enum ViaCommandId {
-    GetProtocolVersion              = 0x01, // always 0x01
-    GetKeyboardValue                = 0x02,
-    SetKeyboardValue                = 0x03,
+    GetProtocolVersion = 0x01, // always 0x01
+    GetKeyboardValue = 0x02,
+    SetKeyboardValue = 0x03,
     //DynamicKeymapGetKeycode         = 0x04,
     //DynamicKeymapSetKeycode         = 0x05,
     //DynamicKeymapReset              = 0x06,
-    CustomSetValue                  = 0x07,
-    CustomGetValue                  = 0x08,
+    CustomSetValue = 0x07,
+    CustomGetValue = 0x08,
     //CustomSave                      = 0x09,
     //EepromReset                     = 0x0A,
-    BootloaderJump                  = 0x0B,
+    BootloaderJump = 0x0B,
     //DynamicKeymapMacroGetCount      = 0x0C,
     //DynamicKeymapMacroGetBufferSize = 0x0D,
     //DynamicKeymapMacroGetBuffer     = 0x0E,
@@ -112,11 +111,11 @@ enum ViaCommandId {
 }
 
 enum ViaKeyboardValueId {
-    Uptime            = 0x01,
-    LayoutOptions     = 0x02,
+    Uptime = 0x01,
+    LayoutOptions = 0x02,
     SwitchMatrixState = 0x03,
-    FirmwareVersion   = 0x04,
-    DeviceIndication  = 0x05,
+    FirmwareVersion = 0x04,
+    DeviceIndication = 0x05,
 }
 
 enum ViaChannelId {
@@ -129,7 +128,7 @@ enum ViaChannelId {
 
 enum ViaBacklightValue {
     Brightness = 1,
-    Effect     = 2,
+    Effect = 2,
 }
 
 //enum via_qmk_rgblight_value {
@@ -140,20 +139,25 @@ enum ViaBacklightValue {
 //}
 
 enum ViaRgbMatrixValue {
-    Brightness  = 1,
-    Effect      = 2,
+    Brightness = 1,
+    Effect = 2,
     EffectSpeed = 3,
-    Color       = 4,
+    Color = 4,
 }
 
-fn send_message(dev: &HidDevice, message_id: u8, msg: Option<&[u8]>, out_len: usize) -> Result<Vec<u8>, ()> {
+fn send_message(
+    dev: &HidDevice,
+    message_id: u8,
+    msg: Option<&[u8]>,
+    out_len: usize,
+) -> Result<Vec<u8>, ()> {
     let mut data = vec![0xFE; RAW_HID_BUFFER_SIZE];
     data[0] = 0x00; // NULL report ID
     data[1] = message_id;
 
     if let Some(msg) = msg {
         assert!(msg.len() <= RAW_HID_BUFFER_SIZE);
-        let data_msg = &mut data[2..msg.len()+2];
+        let data_msg = &mut data[2..msg.len() + 2];
         data_msg.copy_from_slice(msg);
     }
 
@@ -162,16 +166,16 @@ fn send_message(dev: &HidDevice, message_id: u8, msg: Option<&[u8]>, out_len: us
     match res {
         Ok(_size) => {
             //println!("Written: {}", size);
-        },
+        }
         Err(err) => {
             println!("Write err: {:?}", err);
-            return Err(())
-        },
+            return Err(());
+        }
     };
 
     // Not response expected
     if out_len == 0 {
-        return Ok(vec![])
+        return Ok(vec![]);
     }
 
     dev.set_blocking_mode(true).unwrap();
@@ -183,12 +187,12 @@ fn send_message(dev: &HidDevice, message_id: u8, msg: Option<&[u8]>, out_len: us
             //println!("Read: {}", size);
             //println!("out_len: {}", out_len);
             //println!("buf: {:?}", buf);
-            Ok(buf[1..out_len+1].to_vec())
-        },
+            Ok(buf[1..out_len + 1].to_vec())
+        }
         Err(err) => {
             println!("Read err: {:?}", err);
             Err(())
-        },
+        }
     }
 }
 
@@ -208,7 +212,7 @@ fn get_keyboard_value(dev: &HidDevice, value: ViaKeyboardValueId) -> Result<u32,
 }
 
 fn set_keyboard_value(dev: &HidDevice, value: ViaKeyboardValueId, number: u32) -> Result<(), ()> {
-    assert!(number < (1<<8)); // TODO: Support u32
+    assert!(number < (1 << 8)); // TODO: Support u32
     let msg = vec![value as u8, number as u8];
     send_message(dev, ViaCommandId::SetKeyboardValue as u8, Some(&msg), 0)?;
     Ok(())
@@ -229,7 +233,10 @@ fn set_rgb_u8(dev: &HidDevice, value: u8, value_data: u8) -> Result<(), ()> {
 }
 
 fn get_rgb_color(dev: &HidDevice) -> Result<(u8, u8), ()> {
-    let msg = vec![ViaChannelId::RgbMatrixChannel as u8, ViaRgbMatrixValue::Color as u8];
+    let msg = vec![
+        ViaChannelId::RgbMatrixChannel as u8,
+        ViaRgbMatrixValue::Color as u8,
+    ];
     let output = send_message(dev, ViaCommandId::CustomGetValue as u8, Some(&msg), 4)?;
     //println!("Current value: {:?}", output);
     // hue, saturation
@@ -294,7 +301,7 @@ fn main() {
                         CONSOLE_USAGE_PAGE => println!(" (CONSOLE_USAGE_PAGE)"),
                         G_DESK_USAGE_PAGE => println!(" (Generic Desktop Usage Page)"),
                         CONSUMER_USAGE_PAGE => println!(" (CONSUMER_USAGE_PAGE)"),
-                        _ => {},
+                        _ => {}
                     }
                     println!();
                 }
@@ -316,24 +323,26 @@ fn main() {
             } else {
                 println!("Make sure to select a device with --vid and --pid");
             }
-        },
+        }
         Err(e) => {
             eprintln!("Error: {}", e);
-        },
+        }
     };
 }
 
-
-fn use_device(args: &ClapCli,api: &HidApi, dev_info: &DeviceInfo) {
+fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
     let vid = dev_info.vendor_id();
     let pid = dev_info.product_id();
     let interface = dev_info.interface_number();
 
     if args.verbose {
-        println!("Connecting to {:04X}:{:04X} Interface: {}", vid, pid, interface);
+        println!(
+            "Connecting to {:04X}:{:04X} Interface: {}",
+            vid, pid, interface
+        );
     }
 
-    let device = dev_info.open_device(&api).unwrap();
+    let device = dev_info.open_device(api).unwrap();
 
     if args.version {
         let prot_ver = get_protocol_ver(&device).unwrap();
@@ -345,7 +354,8 @@ fn use_device(args: &ClapCli,api: &HidApi, dev_info: &DeviceInfo) {
         let prot_ver = get_protocol_ver(&device).unwrap();
         let uptime = get_keyboard_value(&device, ViaKeyboardValueId::Uptime).unwrap();
         let layout_opts = get_keyboard_value(&device, ViaKeyboardValueId::LayoutOptions).unwrap();
-        let matrix_state = get_keyboard_value(&device, ViaKeyboardValueId::SwitchMatrixState).unwrap();
+        let matrix_state =
+            get_keyboard_value(&device, ViaKeyboardValueId::SwitchMatrixState).unwrap();
         let fw_ver = get_keyboard_value(&device, ViaKeyboardValueId::FirmwareVersion).unwrap();
 
         println!("Protocol Version:     {:04X}", prot_ver);
@@ -361,7 +371,12 @@ fn use_device(args: &ClapCli,api: &HidApi, dev_info: &DeviceInfo) {
     } else if let Some(arg_brightness) = args.rgb_brightness {
         if let Some(percentage) = arg_brightness {
             let brightness = (255.0 * percentage as f32) / 100.0;
-            set_rgb_u8(&device, ViaRgbMatrixValue::Brightness as u8, brightness.round() as u8).unwrap();
+            set_rgb_u8(
+                &device,
+                ViaRgbMatrixValue::Brightness as u8,
+                brightness.round() as u8,
+            )
+            .unwrap();
         }
         let brightness = get_rgb_u8(&device, ViaRgbMatrixValue::Brightness as u8).unwrap();
         let percentage = (100.0 * brightness as f32) / 255.0;
@@ -379,7 +394,8 @@ fn use_device(args: &ClapCli,api: &HidApi, dev_info: &DeviceInfo) {
         let speed = get_rgb_u8(&device, ViaRgbMatrixValue::EffectSpeed as u8).unwrap();
         println!("Effect Speed: {}", speed)
     } else if let Some(arg_color) = args.rgb_color {
-        if let Some(_) = arg_color {
+        if let Some(color) = arg_color {
+            println!("TODO: Implement setting color {}", color);
             //set_rgb_color(&device, ViaRgbMatrixValue::Color as u8, color).unwrap();
         }
         let (hue, saturation) = get_rgb_color(&device).unwrap();
@@ -388,7 +404,12 @@ fn use_device(args: &ClapCli,api: &HidApi, dev_info: &DeviceInfo) {
     } else if let Some(arg_backlight) = args.backlight {
         if let Some(percentage) = arg_backlight {
             let brightness = (255.0 * percentage as f32) / 100.0;
-            set_backlight(&device, ViaBacklightValue::Brightness as u8, brightness.round() as u8).unwrap();
+            set_backlight(
+                &device,
+                ViaBacklightValue::Brightness as u8,
+                brightness.round() as u8,
+            )
+            .unwrap();
         }
         let brightness = get_backlight(&device, ViaBacklightValue::Brightness as u8).unwrap();
         let percentage = (100.0 * brightness as f32) / 255.0;
@@ -400,8 +421,8 @@ fn use_device(args: &ClapCli,api: &HidApi, dev_info: &DeviceInfo) {
         let breathing = get_backlight(&device, ViaBacklightValue::Effect as u8).unwrap();
         println!("Breathing: : {:?}", breathing == 1)
     //} else if args.rgb_matrix_save {
-        // TODO
-        //set_rgb_u8(&device, ViaRgbMatrixValue::Effect as u8, effect).unwrap();
+    // TODO
+    //set_rgb_u8(&device, ViaRgbMatrixValue::Effect as u8, effect).unwrap();
     } else {
         println!("No command specified.");
     }
