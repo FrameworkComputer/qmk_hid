@@ -9,7 +9,7 @@ I've only tested on Linux so far, but should also work on Windows, FreeBSD and m
 
 ## Building
 
-Pre-requisites: Rust
+Pre-requisites: Rust, libudev
 
 ## Running
 
