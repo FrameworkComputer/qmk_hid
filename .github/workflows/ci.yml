@@ -3,26 +3,27 @@ on:
   push:
 
 jobs:
-  freebsd-cross-build:
-    name: Cross-Build for FreeBSD
-    runs-on: 'ubuntu-22.04'
-    steps:
-    - uses: actions/checkout@v3
+  # Enable later
+  #freebsd-cross-build:
+  #  name: Cross-Build for FreeBSD
+  #  runs-on: 'ubuntu-22.04'
+  #  steps:
+  #  - uses: actions/checkout@v3
 
-    - name: Setup Rust toolchain
-      run: rustup show
+  #  - name: Setup Rust toolchain
+  #    run: rustup show
 
-    - name: Install cross compilation tool
-      run: cargo install cross
+  #  - name: Install cross compilation tool
+  #    run: cargo install cross
 
-    - name: Build FreeBSD tool
-      run: cross build --target=x86_64-unknown-freebsd
+  #  - name: Build FreeBSD tool
+  #    run: cross build --target=x86_64-unknown-freebsd
 
-    - name: Upload FreeBSD App
-      uses: actions/upload-artifact@v3
-      with:
-        name: qmk_hid_freebsd
-        path: target/x86_64-unknown-freebsd/debug/qmk_hid
+  #  - name: Upload FreeBSD App
+  #    uses: actions/upload-artifact@v3
+  #    with:
+  #      name: qmk_hid_freebsd
+  #      path: target/x86_64-unknown-freebsd/debug/qmk_hid
 
   build:
     name: Build Linux and UEFI
