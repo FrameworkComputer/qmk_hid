@@ -342,7 +342,7 @@ fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
         );
     }
 
-    let device = dev_info.open_device(&api).unwrap();
+    let device = dev_info.open_device(api).unwrap();
 
     if args.version {
         let prot_ver = get_protocol_ver(&device).unwrap();
@@ -394,7 +394,8 @@ fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
         let speed = get_rgb_u8(&device, ViaRgbMatrixValue::EffectSpeed as u8).unwrap();
         println!("Effect Speed: {}", speed)
     } else if let Some(arg_color) = args.rgb_color {
-        if let Some(_) = arg_color {
+        if let Some(color) = arg_color {
+            println!("TODO: Implement setting color {}", color);
             //set_rgb_color(&device, ViaRgbMatrixValue::Color as u8, color).unwrap();
         }
         let (hue, saturation) = get_rgb_color(&device).unwrap();
