@@ -48,9 +48,13 @@ struct ClapCli {
     #[arg(long)]
     rgb_effect_speed: Option<Option<u8>>,
 
-    /// Set RGB color or get, if no value provided
+    /// Set RGB hue or get, if no value provided. (0-255)
     #[arg(long)]
-    rgb_color: Option<Option<u8>>,
+    rgb_hue: Option<Option<u8>>,
+
+    /// Set RGB saturation or get, if no value provided. (0-255)
+    #[arg(long)]
+    rgb_saturation: Option<Option<u8>>,
 
     /// Set backlight brightness percentage or get, if no value provided
     #[arg(long)]
@@ -232,6 +236,23 @@ fn set_rgb_u8(dev: &HidDevice, value: u8, value_data: u8) -> Result<(), ()> {
     Ok(())
 }
 
+fn set_rgb_color(dev: &HidDevice, hue: Option<u8>, saturation: Option<u8>) -> Result<(), ()> {
+    let (cur_hue, cur_saturation) = get_rgb_color(dev).unwrap();
+
+    let hue = hue.unwrap_or(cur_hue);
+    let saturation = saturation.unwrap_or(cur_saturation);
+
+    let msg = vec![
+        ViaChannelId::RgbMatrixChannel as u8,
+        ViaRgbMatrixValue::Color as u8,
+        hue,
+        saturation,
+    ];
+    send_message(dev, ViaCommandId::CustomSetValue as u8, Some(&msg), 0)?;
+
+    Ok(())
+}
+
 fn get_rgb_color(dev: &HidDevice) -> Result<(u8, u8), ()> {
     let msg = vec![
         ViaChannelId::RgbMatrixChannel as u8,
@@ -393,10 +414,16 @@ fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
         }
         let speed = get_rgb_u8(&device, ViaRgbMatrixValue::EffectSpeed as u8).unwrap();
         println!("Effect Speed: {}", speed)
-    } else if let Some(arg_color) = args.rgb_color {
-        if let Some(color) = arg_color {
-            println!("TODO: Implement setting color {}", color);
-            //set_rgb_color(&device, ViaRgbMatrixValue::Color as u8, color).unwrap();
+    } else if let Some(arg_saturation) = &args.rgb_saturation {
+        if let Some(saturation) = arg_saturation {
+            set_rgb_color(&device, None, Some(*saturation)).unwrap();
+        }
+        let (hue, saturation) = get_rgb_color(&device).unwrap();
+        println!("Color Hue:        {}", hue);
+        println!("Color Saturation: {}", saturation);
+    } else if let Some(arg_hue) = &args.rgb_hue {
+        if let Some(hue) = arg_hue {
+            set_rgb_color(&device, Some(*hue), None).unwrap();
         }
         let (hue, saturation) = get_rgb_color(&device).unwrap();
         println!("Color Hue:        {}", hue);

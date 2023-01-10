@@ -45,8 +45,10 @@ Options:
           Set RGB effect or get, if no value provided
       --rgb-effect-speed [<RGB_EFFECT_SPEED>]
           Set RGB effect speed or get, if no value provided (0-255)
-      --rgb-color [<RGB_COLOR>]
-          Set RGB color or get, if no value provided
+      --rgb-hue [<RGB_HUE>]
+          Set RGB hue or get, if no value provided. (0-255)
+      --rgb-saturation [<RGB_SATURATION>]
+          Set RGB saturation or get, if no value provided. (0-255)
       --backlight [<BACKLIGHT>]
           Set backlight brightness percentage or get, if no value provided
       --backlight-breathing [<BACKLIGHT_BREATHING>]
@@ -79,7 +81,7 @@ Make sure to select a device with --vid and --pid
 > qmk_hid --vid 3434 --pid 100 --rgb-brightness 50
 Brightness: 50%
 
-# Set new brightness
+# Set new RGB brightness
 > qmk_hid --vid 3434 --pid 100 --rgb-brightness 100
 Brightness: 100%
 ```
