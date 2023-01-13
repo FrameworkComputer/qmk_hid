@@ -18,21 +18,30 @@ The examples call the binary with the name `qmk_hid`. On Windows use
 
 ###### Show the help
 
-```
-> qmk_hid -h
+```sh
+> qmk_hid
 RAW HID and VIA commandline for QMK devices
 
-Usage: qmk_hid [OPTIONS]
+Usage: qmk_hid [OPTIONS] [COMMAND]
+
+Commands:
+  via      Via
+  qmk      QMK
+  help     Print this message or the help of the given subcommand(s)
 
 Options:
-  -l, --list
-          List connected HID devices
-  -v, --verbose
-          Verbose outputs to the console
-      --vid <VID>
-          VID (Vendor ID) in hex digits
-      --pid <PID>
-          PID (Product ID) in hex digits
+  -l, --list       List connected HID devices
+  -v, --verbose    Verbose outputs to the console
+      --vid <VID>  VID (Vendor ID) in hex digits
+      --pid <PID>  PID (Product ID) in hex digits
+  -h, --help       Print help information
+
+> qmk_hid via
+Via
+
+Usage: qmk_hid via [OPTIONS]
+
+Options:
       --version
           Show protocol version
       --info
@@ -57,11 +66,19 @@ Options:
           Jump to the bootloader
   -h, --help
           Print help information
+
+> qmk_hid qmk
+QMK
+
+Usage: qmk_hid qmk [OPTIONS]
+
+Options:
+  -c, --console  Listen to the console
+  -h, --help     Print help information
 ```
 
 ###### List available devices
-
-```
+```sh
 > qmk_hid -l
 3434:0100 Interface: 1
   Manufacturer: Some("Keychron")
@@ -77,12 +94,22 @@ Make sure to select a device with --vid and --pid
 ###### Control that device
 
 ```sh
+# If there is only one device, no filter needed
+> qmk_hid via --version
+Protocol Version: 000B
+
+# If there are multiple devices, need to filter by either VID, PID or both
+> qmk_hid via --version
+More than 1 device found. Select a specific device with --vid and --pid
+> qmk_hid --vid 3434 via --version
+Protocol Version: 000B
+
 # Get current RGB brightness
-> qmk_hid --vid 3434 --pid 100 --rgb-brightness 50
+> qmk_hid via --rgb-brightness 50
 Brightness: 50%
 
 # Set new RGB brightness
-> qmk_hid --vid 3434 --pid 100 --rgb-brightness 100
+> qmk_hid via --rgb-brightness 100
 Brightness: 100%
 ```
 
@@ -91,6 +118,44 @@ Brightness: 100%
 Note: This will only work when the QMK firmware has this command enabled. This
 is not the default upstream behavior.
 ```sh
-> cargo run -q -- --vid 3434 --pid 100 --bootloader
+> qmk_hid --bootloader
 Trying to jump to bootloader
+```
+
+###### Factory testing the LEDs
+
+```sh
+# Turn RGB off
+qmk_hid via --rgb-effect 0
+
+# Turn all LEDs on
+qmk_hid via --rgb-effect 1
+
+# Change color
+qmk_hid via --rgb-saturation 255
+# Blue
+qmk_hid via --rgb-hue 0
+# Cyan
+qmk_hid via --rgb-hue 50
+# Green
+qmk_hid via --rgb-hue 100
+# Yellow
+qmk_hid via --rgb-hue 150
+# Red
+qmk_hid via --rgb-hue 170
+# Purple
+qmk_hid via --rgb-hue 200
+
+
+# Enable a mode that reacts to keypresses
+qmk_hid via --rgb-effect 16
+# And simulate keypresses ASDF (see QMK's keycodes.h)
+qmk_hid factory --keycode 4
+qmk_hid factory --keycode 22
+qmk_hid factory --keycode 7
+qmk_hid factory --keycode 9
+
+# Or go through all keypresses (except FN)
+# Only one LED is mapped to each key
+qmk_hid factory --all-keycodes
 ```
