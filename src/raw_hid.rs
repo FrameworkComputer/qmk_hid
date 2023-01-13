@@ -63,18 +63,15 @@ pub fn send_message(
 // Same protocol as https://www.pjrc.com/teensy/hid_listen.html
 pub fn qmk_console(dev: &HidDevice) {
     loop {
-        // TODO: Handles sighup?
         let mut buf: Vec<u8> = vec![0xFE; RAW_HID_BUFFER_SIZE];
         let res = dev.read(buf.as_mut_slice());
         match res {
             Ok(_size) => {
-                // TODO: Buffer until we reach newline and print everything before
                 let string = String::from_utf8_lossy(&buf);
                 print!("{}", string);
             }
             Err(err) => {
                 println!("Read err: {:?}", err);
-                //Err(())
             }
         }
     }

@@ -2,7 +2,6 @@ use hidapi::HidDevice;
 
 use crate::raw_hid::*;
 
-//const PROTOCOL_VER_MSG_ID: u8;
 #[repr(u8)]
 pub enum ViaCommandId {
     GetProtocolVersion = 0x01, // always 0x01
@@ -50,11 +49,11 @@ pub enum ViaBacklightValue {
     Effect = 2,
 }
 
-//enum via_qmk_rgblight_value {
-//    id_qmk_rgblight_brightness   = 1,
-//    id_qmk_rgblight_effect       = 2,
-//    id_qmk_rgblight_effect_speed = 3,
-//    id_qmk_rgblight_color        = 4,
+//enum ViaRgbLightValue {
+//    Brightness  = 1,
+//    Effect      = 2,
+//    EffectSpeed = 3,
+//    Color       = 4,
 //}
 
 pub enum ViaRgbMatrixValue {
@@ -64,10 +63,10 @@ pub enum ViaRgbMatrixValue {
     Color = 4,
 }
 
+/// Get the VIA protocol version. Latest one is 0x000B
 pub fn get_protocol_ver(dev: &HidDevice) -> Result<u16, ()> {
     let output = send_message(dev, ViaCommandId::GetProtocolVersion as u8, None, 2)?;
-    //println!("output: {:?}", output);
-    assert_eq!(output.len(), 2);
+    debug_assert_eq!(output.len(), 2);
     Ok(u16::from_be_bytes(output.try_into().unwrap()))
 }
 
@@ -127,20 +126,16 @@ pub fn get_rgb_color(dev: &HidDevice) -> Result<(u8, u8), ()> {
         ViaRgbMatrixValue::Color as u8,
     ];
     let output = send_message(dev, ViaCommandId::CustomGetValue as u8, Some(&msg), 4)?;
-    //println!("Current value: {:?}", output);
-    // hue, saturation
     Ok((output[2], output[3]))
 }
 
 pub fn get_backlight(dev: &HidDevice, value: u8) -> Result<u8, ()> {
     let msg = vec![ViaChannelId::BacklightChannel as u8, value];
     let output = send_message(dev, ViaCommandId::CustomGetValue as u8, Some(&msg), 3)?;
-    //println!("Current value: {:?}", output);
     Ok(output[2])
 }
 
 pub fn set_backlight(dev: &HidDevice, value: u8, value_data: u8) -> Result<(), ()> {
-    // data = [ command_id, channel_id, value_id, value_data ]
     let msg = vec![ViaChannelId::RgbMatrixChannel as u8, value, value_data];
     send_message(dev, ViaCommandId::CustomSetValue as u8, Some(&msg), 0)?;
     Ok(())
@@ -148,7 +143,6 @@ pub fn set_backlight(dev: &HidDevice, value: u8, value_data: u8) -> Result<(), (
 
 pub fn bootloader_jump(dev: &HidDevice) -> Result<(), ()> {
     let output = send_message(dev, ViaCommandId::BootloaderJump as u8, None, 0)?;
-    //println!("output: {:?}", output);
-    assert_eq!(output.len(), 0);
+    debug_assert_eq!(output.len(), 0);
     Ok(())
 }

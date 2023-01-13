@@ -287,7 +287,6 @@ fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
         }
         Some(Commands::Qmk(args)) => {
             if args.console {
-                println!("QMK console");
                 qmk_console(&device);
             }
         }
