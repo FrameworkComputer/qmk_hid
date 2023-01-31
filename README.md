@@ -47,7 +47,7 @@ Options:
       --info
           Get device information
       --device-indication
-          Get device indication
+          Flash device indication (backlight) 3x
       --rgb-brightness [<RGB_BRIGHTNESS>]
           Set RGB brightness percentage or get, if no value provided
       --rgb-effect [<RGB_EFFECT>]
@@ -75,7 +75,7 @@ QMK
 Usage: qmk_hid qmk [OPTIONS]
 
 Options:
-  -c, --console  Listen to the console
+  -c, --console  Listen to the console. Better to use `qmk console` (https://github.com/qmk/qmk_cli)
   -h, --help     Print help information
 ```
 

@@ -44,7 +44,7 @@ struct FactorySubcommand {
 #[derive(Parser, Debug)]
 #[command(arg_required_else_help = true)]
 struct QmkSubcommand {
-    /// Listen to the console
+    /// Listen to the console. Better to use `qmk console` (https://github.com/qmk/qmk_cli)
     #[arg(short, long)]
     console: bool,
 }
@@ -61,7 +61,7 @@ struct ViaSubcommand {
     #[arg(long)]
     info: bool,
 
-    /// Get device indication
+    /// Flash device indication (backlight) 3x
     #[arg(long)]
     device_indication: bool,
 
@@ -97,7 +97,6 @@ struct ViaSubcommand {
     // - RGB light
     // - LED matrix
     // - audio
-
     /// Reset the EEPROM contents (Not supported by all firmware)
     #[arg(long)]
     eeprom_reset: bool,
