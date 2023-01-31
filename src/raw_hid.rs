@@ -1,6 +1,6 @@
 use hidapi::HidDevice;
 
-pub const RAW_HID_BUFFER_SIZE: usize = 32; // ChibiOS won't respond with 32
+pub const RAW_HID_BUFFER_SIZE: usize = 32; // ChibiOS won't respond with 32. Currently hardcoded to ignore. But in upstream have to send 33 bytes.
 
 pub const RAW_USAGE_PAGE: u16 = 0xFF60;
 pub const CONSOLE_USAGE_PAGE: u16 = 0xFF31;
@@ -14,6 +14,7 @@ pub fn send_message(
     msg: Option<&[u8]>,
     out_len: usize,
 ) -> Result<Vec<u8>, ()> {
+    // TODO: Why fill the rest with 0xFE? hidapitester uses 0x00
     let mut data = vec![0xFE; RAW_HID_BUFFER_SIZE];
     data[0] = 0x00; // NULL report ID
     data[1] = message_id;

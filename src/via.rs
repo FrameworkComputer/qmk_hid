@@ -13,7 +13,7 @@ pub enum ViaCommandId {
     CustomSetValue = 0x07,
     CustomGetValue = 0x08,
     //CustomSave                      = 0x09,
-    //EepromReset                     = 0x0A,
+    EepromReset = 0x0A,
     BootloaderJump = 0x0B,
     //DynamicKeymapMacroGetCount      = 0x0C,
     //DynamicKeymapMacroGetBufferSize = 0x0D,
@@ -138,6 +138,12 @@ pub fn get_backlight(dev: &HidDevice, value: u8) -> Result<u8, ()> {
 pub fn set_backlight(dev: &HidDevice, value: u8, value_data: u8) -> Result<(), ()> {
     let msg = vec![ViaChannelId::RgbMatrixChannel as u8, value, value_data];
     send_message(dev, ViaCommandId::CustomSetValue as u8, Some(&msg), 0)?;
+    Ok(())
+}
+
+pub fn eeprom_reset(dev: &HidDevice) -> Result<(), ()> {
+    let output = send_message(dev, ViaCommandId::EepromReset as u8, None, 0)?;
+    debug_assert_eq!(output.len(), 0);
     Ok(())
 }
 
