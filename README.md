@@ -62,6 +62,8 @@ Options:
           Set backlight brightness percentage or get, if no value provided
       --backlight-breathing [<BACKLIGHT_BREATHING>]
           Set backlight breathing or get, if no value provided [possible values: true, false]
+      --eeprom-reset
+          Reset the EEPROM contents (Not supported by all firmware)
       --bootloader
           Jump to the bootloader
   -h, --help
@@ -117,9 +119,25 @@ Brightness: 100%
 
 Note: This will only work when the QMK firmware has this command enabled. This
 is not the default upstream behavior.
+
 ```sh
-> qmk_hid --bootloader
-Trying to jump to bootloader
+> qmk_hid via --bootloader
+```
+
+###### Reset EEPROM contents / Clear VIA config
+
+VIA stores its config in EEPROM (sometimes emulated in flash).
+When using a different keyboard with the same controller board you'll want to
+clear it, otherwise the previously stored VIA config overrides the hardcoded
+one.
+
+This becomes obvious when trying to change the hardcoded keymap but the
+behavior does not change.
+
+The command only does something when the firmware has `VIA_EEPROM_ALLOW_RESET` defined.
+
+```sh
+> qmk_hid via --eeprom-config
 ```
 
 ###### Factory testing the LEDs

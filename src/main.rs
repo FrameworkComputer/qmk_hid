@@ -96,9 +96,12 @@ struct ViaSubcommand {
     // TODO:
     // - RGB light
     // - LED matrix
-    // - backlight
-    // - eeprom reset
     // - audio
+
+    /// Reset the EEPROM contents (Not supported by all firmware)
+    #[arg(long)]
+    eeprom_reset: bool,
+
     /// Jump to the bootloader
     #[arg(long)]
     bootloader: bool,
@@ -294,8 +297,9 @@ fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
             if args.version {
                 let prot_ver = get_protocol_ver(&device).unwrap();
                 println!("Protocol Version: {:04X}", prot_ver);
+            } else if args.eeprom_reset {
+                eeprom_reset(&device).unwrap();
             } else if args.bootloader {
-                println!("Trying to jump to bootloader");
                 bootloader_jump(&device).unwrap();
             } else if args.info {
                 let prot_ver = get_protocol_ver(&device).unwrap();
