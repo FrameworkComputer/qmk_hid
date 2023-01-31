@@ -313,10 +313,21 @@ fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
                 println!("Switch Matrix State:  {:?}", matrix_state); // TODO: Decode
                 println!("VIA Firmware Version: {:?}", fw_ver);
             } else if args.device_indication {
-                println!("Setting device indication");
+                // TODO: Make sure it works with the single color backlight
+                // Device indication doesn't work well with all effects
+                // So it's best to save the currently configured one, switch to solid color and later back.
+                let cur_effect = get_rgb_u8(&device, ViaRgbMatrixValue::Effect as u8).unwrap();
+                // Solid effect is always 1
+                set_rgb_u8(&device, ViaRgbMatrixValue::Effect as u8, 1).unwrap();
 
-                // TODO: Should repeat this 6 times, every 200ms
-                set_keyboard_value(&device, ViaKeyboardValueId::DeviceIndication, 0).unwrap();
+                // QMK recommends to repeat this 6 times, every 200ms
+                for _ in 0..6 {
+                    set_keyboard_value(&device, ViaKeyboardValueId::DeviceIndication, 0).unwrap();
+                    thread::sleep(Duration::from_millis(200));
+                }
+
+                // Restore effect
+                set_rgb_u8(&device, ViaRgbMatrixValue::Effect as u8, cur_effect).unwrap();
             } else if let Some(arg_brightness) = args.rgb_brightness {
                 if let Some(percentage) = arg_brightness {
                     let brightness = (255.0 * percentage as f32) / 100.0;
