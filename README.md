@@ -11,6 +11,11 @@ Tested to work on Windows and Linux, without any drivers or admin privileges.
 
 Pre-requisites: Rust, libudev
 
+```sh
+cargo build
+ls -l target/debug/qmk_hid
+```
+
 ## Running
 
 The examples call the binary with the name `qmk_hid`. On Windows use
@@ -144,6 +149,9 @@ The command only does something when the firmware has `VIA_EEPROM_ALLOW_RESET` d
 ###### Factory testing the LEDs
 
 ```sh
+# Use "device indication" to flash backlight 3 times
+qmk_hid via --device-indication
+
 # Turn RGB off
 qmk_hid via --rgb-effect 0
 
@@ -167,7 +175,11 @@ qmk_hid via --rgb-hue 200
 
 
 # Enable a mode that reacts to keypresses
-qmk_hid via --rgb-effect 16
+# Note that the effect numbers can be different per keyboard
+# On Lotus we currently enable all, then 38 is `SOLID_REACTIVE_MULTICROSS`
+qmk_hid via --rgb-effect 38
+
+# Factory commands are not guaranteed to work
 # And simulate keypresses ASDF (see QMK's keycodes.h)
 qmk_hid factory --keycode 4
 qmk_hid factory --keycode 22
