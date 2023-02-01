@@ -1,3 +1,5 @@
+//! QMK basic keycode definitions. Based on quantum/keycodes.h
+
 #![allow(dead_code, unused)]
 pub const KC_NO: u8 = 0x0000;
 pub const KC_TRANSPARENT: u8 = 0x0001;

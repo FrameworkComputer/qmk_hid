@@ -5,11 +5,16 @@ Commandline (and soon library) to interact with QMK devices via their raw HID in
 Currently focusing on the VIA API.
 It will soon be superceded by QMK XAP, but that isn't ready yet.
 
-I've only tested on Linux so far, but should also work on Windows, FreeBSD and macOS.
+Tested to work on Windows and Linux, without any drivers or admin privileges.
 
 ## Building
 
 Pre-requisites: Rust, libudev
+
+```sh
+cargo build
+ls -l target/debug/qmk_hid
+```
 
 ## Running
 
@@ -35,6 +40,7 @@ Options:
       --vid <VID>  VID (Vendor ID) in hex digits
       --pid <PID>  PID (Product ID) in hex digits
   -h, --help       Print help information
+  -V, --version    Print version information
 
 > qmk_hid via
 Via
@@ -143,6 +149,9 @@ The command only does something when the firmware has `VIA_EEPROM_ALLOW_RESET` d
 ###### Factory testing the LEDs
 
 ```sh
+# Use "device indication" to flash backlight 3 times
+qmk_hid via --device-indication
+
 # Turn RGB off
 qmk_hid via --rgb-effect 0
 
@@ -166,7 +175,11 @@ qmk_hid via --rgb-hue 200
 
 
 # Enable a mode that reacts to keypresses
-qmk_hid via --rgb-effect 16
+# Note that the effect numbers can be different per keyboard
+# On Lotus we currently enable all, then 38 is `SOLID_REACTIVE_MULTICROSS`
+qmk_hid via --rgb-effect 38
+
+# Factory commands are not guaranteed to work
 # And simulate keypresses ASDF (see QMK's keycodes.h)
 qmk_hid factory --keycode 4
 qmk_hid factory --keycode 22
