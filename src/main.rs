@@ -108,7 +108,7 @@ struct ViaSubcommand {
 
 /// RAW HID and VIA commandline for QMK devices
 #[derive(Parser, Debug)]
-#[command(arg_required_else_help = true)]
+#[command(version, arg_required_else_help = true)]
 struct ClapCli {
     #[command(subcommand)]
     command: Option<Commands>,

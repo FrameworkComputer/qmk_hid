@@ -5,7 +5,7 @@ Commandline (and soon library) to interact with QMK devices via their raw HID in
 Currently focusing on the VIA API.
 It will soon be superceded by QMK XAP, but that isn't ready yet.
 
-I've only tested on Linux so far, but should also work on Windows, FreeBSD and macOS.
+Tested to work on Windows and Linux, without any drivers or admin privileges.
 
 ## Building
 
@@ -35,6 +35,7 @@ Options:
       --vid <VID>  VID (Vendor ID) in hex digits
       --pid <PID>  PID (Product ID) in hex digits
   -h, --help       Print help information
+  -V, --version    Print version information
 
 > qmk_hid via
 Via
