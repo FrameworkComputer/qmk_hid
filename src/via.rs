@@ -1,3 +1,5 @@
+//! Implementing the VIA protocol supported by QMK keyboard firmware
+
 use hidapi::HidDevice;
 
 use crate::raw_hid::*;

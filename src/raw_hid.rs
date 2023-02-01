@@ -1,6 +1,11 @@
+//! Interact with the raw HID interface of QMK firmware
+
 use hidapi::HidDevice;
 
-pub const RAW_HID_BUFFER_SIZE: usize = 32; // ChibiOS won't respond with 32. Currently hardcoded to ignore. But in upstream have to send 33 bytes.
+// ChibiOS won't respond if we send 32.
+// Currently I hardcoded it to ignore. But in upstream QMK/ChibiOS we have to send 33 bytes.
+// See raw_hid_send in tmk_core/protocol/chibios/usb_main.c
+pub const RAW_HID_BUFFER_SIZE: usize = 32;
 
 pub const RAW_USAGE_PAGE: u16 = 0xFF60;
 pub const CONSOLE_USAGE_PAGE: u16 = 0xFF31;
@@ -37,7 +42,7 @@ pub fn send_message(
         }
     };
 
-    // Not response expected
+    // No response expected
     if out_len == 0 {
         return Ok(vec![]);
     }
