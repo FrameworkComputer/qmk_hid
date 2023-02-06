@@ -37,7 +37,7 @@ pub fn send_message(
             //println!("Written: {}", size);
         }
         Err(err) => {
-            println!("Write err: {:?}", err);
+            println!("Write err: {err:?}");
             return Err(());
         }
     };
@@ -59,7 +59,7 @@ pub fn send_message(
             Ok(buf[1..out_len + 1].to_vec())
         }
         Err(err) => {
-            println!("Read err: {:?}", err);
+            println!("Read err: {err:?}");
             Err(())
         }
     }
@@ -74,10 +74,10 @@ pub fn qmk_console(dev: &HidDevice) {
         match res {
             Ok(_size) => {
                 let string = String::from_utf8_lossy(&buf);
-                print!("{}", string);
+                print!("{string}");
             }
             Err(err) => {
-                println!("Read err: {:?}", err);
+                println!("Read err: {err:?}");
             }
         }
     }
