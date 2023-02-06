@@ -316,7 +316,7 @@ fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
                 println!("Switch Matrix State:  {:?}", matrix_state); // TODO: Decode
                 println!("VIA Firmware Version: {:?}", fw_ver);
             } else if args.device_indication {
-                // TODO: Make sure it works with the single color backlight
+                // Works with RGB and single zone backlight keyboards
                 // Device indication doesn't work well with all effects
                 // So it's best to save the currently configured one, switch to solid color and later back.
                 let cur_effect = get_rgb_u8(&device, ViaRgbMatrixValue::Effect as u8).unwrap();
