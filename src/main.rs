@@ -154,7 +154,7 @@ fn find_devices(api: &HidApi, args: &ClapCli) -> Found {
         }
 
         if args.list || args.verbose {
-            println!("{:04x}:{:04x} Interface: {}", vid, pid, interface);
+            println!("{vid:04x}:{pid:04x} Interface: {interface}");
             println!("  Manufacturer: {:?}", dev_info.manufacturer_string());
             println!("  path:         {:?}", dev_info.path());
             println!("  Product:      {:?}", dev_info.product_string());
@@ -197,8 +197,7 @@ fn find_devices(api: &HidApi, args: &ClapCli) -> Found {
             RAW_USAGE_PAGE => {
                 if interface != QMK_INTERFACE {
                     println!(
-                        "Something is wrong with {}:{}. The interface isn't {}",
-                        vid, pid, QMK_INTERFACE
+                        "Something is wrong with {vid}:{pid}. The interface isn't {QMK_INTERFACE}"
                     );
                 } else {
                     found.raw_usages.push(dev_info.clone());
@@ -237,7 +236,7 @@ fn main() {
             }
         }
         Err(e) => {
-            eprintln!("Error: {}", e);
+            eprintln!("Error: {e}");
         }
     };
 }
@@ -253,7 +252,7 @@ fn all_keycodes(device: &HidDevice) {
         KC_UP, KC_DOWN, KC_RGHT,
     ];
     for keycode in ansi {
-        println!("Emulating keycode: {}", keycode);
+        println!("Emulating keycode: {keycode}");
         send_factory_command(device, 0x01, keycode).unwrap();
         thread::sleep(Duration::from_millis(100));
     }
@@ -265,10 +264,7 @@ fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
     let interface = dev_info.interface_number();
 
     if args.verbose {
-        println!(
-            "Connecting to {:04X}:{:04X} Interface: {}",
-            vid, pid, interface
-        );
+        println!("Connecting to {vid:04X}:{pid:04X} Interface: {interface}");
     }
 
     let device = dev_info.open_device(api).unwrap();
@@ -276,11 +272,11 @@ fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
     match &args.command {
         Some(Commands::Factory(args)) => {
             if let Some(keycode) = args.keycode {
-                println!("Emulating keycode: {}", keycode);
+                println!("Emulating keycode: {keycode}");
                 send_factory_command(&device, 0x01, keycode as u8).unwrap();
             }
             if let Some(led) = args.led {
-                println!("Lighting up LED: {}", led);
+                println!("Lighting up LED: {led}");
                 send_factory_command(&device, 0x02, led).unwrap();
             }
             if args.all_keycodes {
@@ -295,7 +291,7 @@ fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
         Some(Commands::Via(args)) => {
             if args.version {
                 let prot_ver = get_protocol_ver(&device).unwrap();
-                println!("Protocol Version: {:04X}", prot_ver);
+                println!("Protocol Version: {prot_ver:04X}");
             } else if args.eeprom_reset {
                 eeprom_reset(&device).unwrap();
             } else if args.bootloader {
@@ -310,13 +306,13 @@ fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
                 let fw_ver =
                     get_keyboard_value(&device, ViaKeyboardValueId::FirmwareVersion).unwrap();
 
-                println!("Protocol Version:     {:04X}", prot_ver);
+                println!("Protocol Version:     {prot_ver:04X}");
                 println!("Uptime:               {:?}s", uptime / 1000);
-                println!("Layout Options:       {:?}", layout_opts);
-                println!("Switch Matrix State:  {:?}", matrix_state); // TODO: Decode
-                println!("VIA Firmware Version: {:?}", fw_ver);
+                println!("Layout Options:       {layout_opts:?}");
+                println!("Switch Matrix State:  {matrix_state:?}"); // TODO: Decode
+                println!("VIA Firmware Version: {fw_ver:?}");
             } else if args.device_indication {
-                // TODO: Make sure it works with the single color backlight
+                // Works with RGB and single zone backlight keyboards
                 // Device indication doesn't work well with all effects
                 // So it's best to save the currently configured one, switch to solid color and later back.
                 let cur_effect = get_rgb_u8(&device, ViaRgbMatrixValue::Effect as u8).unwrap();
@@ -349,27 +345,27 @@ fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
                     set_rgb_u8(&device, ViaRgbMatrixValue::Effect as u8, effect).unwrap();
                 }
                 let effect = get_rgb_u8(&device, ViaRgbMatrixValue::Effect as u8).unwrap();
-                println!("Effect: {}", effect)
+                println!("Effect: {effect}")
             } else if let Some(arg_speed) = args.rgb_effect_speed {
                 if let Some(speed) = arg_speed {
                     set_rgb_u8(&device, ViaRgbMatrixValue::EffectSpeed as u8, speed).unwrap();
                 }
                 let speed = get_rgb_u8(&device, ViaRgbMatrixValue::EffectSpeed as u8).unwrap();
-                println!("Effect Speed: {}", speed)
+                println!("Effect Speed: {speed}")
             } else if let Some(arg_saturation) = &args.rgb_saturation {
                 if let Some(saturation) = arg_saturation {
                     set_rgb_color(&device, None, Some(*saturation)).unwrap();
                 }
                 let (hue, saturation) = get_rgb_color(&device).unwrap();
-                println!("Color Hue:        {}", hue);
-                println!("Color Saturation: {}", saturation);
+                println!("Color Hue:        {hue}");
+                println!("Color Saturation: {saturation}");
             } else if let Some(arg_hue) = &args.rgb_hue {
                 if let Some(hue) = arg_hue {
                     set_rgb_color(&device, Some(*hue), None).unwrap();
                 }
                 let (hue, saturation) = get_rgb_color(&device).unwrap();
-                println!("Color Hue:        {}", hue);
-                println!("Color Saturation: {}", saturation);
+                println!("Color Hue:        {hue}");
+                println!("Color Saturation: {saturation}");
             } else if let Some(arg_backlight) = args.backlight {
                 if let Some(percentage) = arg_backlight {
                     let brightness = (255.0 * percentage as f32) / 100.0;

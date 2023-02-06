@@ -138,7 +138,7 @@ pub fn get_backlight(dev: &HidDevice, value: u8) -> Result<u8, ()> {
 }
 
 pub fn set_backlight(dev: &HidDevice, value: u8, value_data: u8) -> Result<(), ()> {
-    let msg = vec![ViaChannelId::RgbMatrixChannel as u8, value, value_data];
+    let msg = vec![ViaChannelId::BacklightChannel as u8, value, value_data];
     send_message(dev, ViaCommandId::CustomSetValue as u8, Some(&msg), 0)?;
     Ok(())
 }
