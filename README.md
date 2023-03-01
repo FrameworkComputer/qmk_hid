@@ -161,8 +161,6 @@ qmk_hid via --rgb-effect 0
 qmk_hid via --rgb-effect 1
 
 # Change color
-qmk_hid via --rgb-saturation 255
-
 qmk_hid via --rgb-color red
 qmk_hid via --rgb-color yellow
 qmk_hid via --rgb-color green
