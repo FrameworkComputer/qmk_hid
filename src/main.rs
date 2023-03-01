@@ -23,6 +23,22 @@ enum Commands {
     Qmk(QmkSubcommand),
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, clap::ValueEnum)]
+enum Color {
+    /// 0° and 255° => 0
+    Red,
+    /// Yellow (120°) => 43
+    Yellow,
+    /// Green (120°) => 85
+    Green,
+    /// Cyan (180°) => 125
+    Cyan,
+    /// Blue (240°) => 170
+    Blue,
+    /// Purple (300°) => 213
+    Purple,
+}
+
 /// Factory
 #[derive(Parser, Debug)]
 #[command(arg_required_else_help = true)]
@@ -80,6 +96,11 @@ struct ViaSubcommand {
     /// Set RGB hue or get, if no value provided. (0-255)
     #[arg(long)]
     rgb_hue: Option<Option<u8>>,
+
+    /// Set RGB color
+    #[arg(long)]
+    #[clap(value_enum)]
+    rgb_color: Option<Color>,
 
     /// Set RGB saturation or get, if no value provided. (0-255)
     #[arg(long)]
@@ -366,6 +387,11 @@ fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
                 let (hue, saturation) = get_rgb_color(&device).unwrap();
                 println!("Color Hue:        {hue}");
                 println!("Color Saturation: {saturation}");
+            } else if let Some(color) = &args.rgb_color {
+                set_rgb_color(&device, Some(color_as_hue(*color)), None).unwrap();
+                let (hue, saturation) = get_rgb_color(&device).unwrap();
+                println!("Color Hue:        {hue}");
+                println!("Color Saturation: {saturation}");
             } else if let Some(arg_backlight) = args.backlight {
                 if let Some(percentage) = arg_backlight {
                     let brightness = (255.0 * percentage as f32) / 100.0;
@@ -395,5 +421,16 @@ fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
             }
         }
         _ => {}
+    }
+}
+
+fn color_as_hue(color: Color) -> u8 {
+    match color {
+        Color::Red => 0,
+        Color::Yellow => 43,
+        Color::Green => 85,
+        Color::Cyan => 125,
+        Color::Blue => 170,
+        Color::Purple => 213,
     }
 }
