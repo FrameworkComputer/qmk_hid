@@ -37,6 +37,8 @@ enum Color {
     Blue,
     /// Purple (300°) => 213
     Purple,
+    /// Saturation 0
+    White,
 }
 
 /// Factory
@@ -388,7 +390,11 @@ fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
                 println!("Color Hue:        {hue}");
                 println!("Color Saturation: {saturation}");
             } else if let Some(color) = &args.rgb_color {
-                set_rgb_color(&device, Some(color_as_hue(*color)), None).unwrap();
+                if let Color::White = color {
+                    set_rgb_color(&device, None, Some(0)).unwrap();
+                } else {
+                    set_rgb_color(&device, Some(color_as_hue(*color)), Some(255)).unwrap();
+                }
                 let (hue, saturation) = get_rgb_color(&device).unwrap();
                 println!("Color Hue:        {hue}");
                 println!("Color Saturation: {saturation}");
@@ -432,5 +438,6 @@ fn color_as_hue(color: Color) -> u8 {
         Color::Cyan => 125,
         Color::Blue => 170,
         Color::Purple => 213,
+        Color::White => 0, // Doesn't matter, only hue needs to be 0
     }
 }
