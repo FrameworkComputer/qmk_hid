@@ -62,6 +62,8 @@ Options:
           Set RGB effect speed or get, if no value provided (0-255)
       --rgb-hue [<RGB_HUE>]
           Set RGB hue or get, if no value provided. (0-255)
+      --rgb-color <RGB_COLOR>
+          Set RGB color [possible values: red, yellow, green, cyan, blue, purple]
       --rgb-saturation [<RGB_SATURATION>]
           Set RGB saturation or get, if no value provided. (0-255)
       --backlight [<BACKLIGHT>]
@@ -160,19 +162,13 @@ qmk_hid via --rgb-effect 1
 
 # Change color
 qmk_hid via --rgb-saturation 255
-# Blue
-qmk_hid via --rgb-hue 0
-# Cyan
-qmk_hid via --rgb-hue 50
-# Green
-qmk_hid via --rgb-hue 100
-# Yellow
-qmk_hid via --rgb-hue 150
-# Red
-qmk_hid via --rgb-hue 170
-# Purple
-qmk_hid via --rgb-hue 200
 
+qmk_hid via --rgb-color red
+qmk_hid via --rgb-color yellow
+qmk_hid via --rgb-color green
+qmk_hid via --rgb-color cyan
+qmk_hid via --rgb-color blue
+qmk_hid via --rgb-color purple
 
 # Enable a mode that reacts to keypresses
 # Note that the effect numbers can be different per keyboard
