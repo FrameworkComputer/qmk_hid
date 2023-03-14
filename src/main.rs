@@ -71,11 +71,7 @@ struct QmkSubcommand {
 #[derive(Parser, Debug)]
 #[command(arg_required_else_help = true)]
 struct ViaSubcommand {
-    /// Show protocol version
-    #[arg(long)]
-    version: bool,
-
-    /// Get device information
+    /// Get VIA protocol and config information (most likely NOT what you're looking for)
     #[arg(long)]
     info: bool,
 
@@ -124,7 +120,7 @@ struct ViaSubcommand {
     #[arg(long)]
     eeprom_reset: bool,
 
-    /// Jump to the bootloader
+    /// Jump to the bootloader (Not supported by all firmware)
     #[arg(long)]
     bootloader: bool,
 }
@@ -344,10 +340,7 @@ fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
             }
         }
         Some(Commands::Via(args)) => {
-            if args.version {
-                let prot_ver = get_protocol_ver(&device).unwrap();
-                println!("Protocol Version: {prot_ver:04X}");
-            } else if args.eeprom_reset {
+            if args.eeprom_reset {
                 eeprom_reset(&device).unwrap();
             } else if args.bootloader {
                 bootloader_jump(&device).unwrap();
@@ -361,11 +354,11 @@ fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
                 let fw_ver =
                     get_keyboard_value(&device, ViaKeyboardValueId::FirmwareVersion).unwrap();
 
-                println!("Protocol Version:     {prot_ver:04X}");
                 println!("Uptime:               {:?}s", uptime / 1000);
-                println!("Layout Options:       {layout_opts:?}");
-                println!("Switch Matrix State:  {matrix_state:?}"); // TODO: Decode
-                println!("VIA Firmware Version: {fw_ver:?}");
+                println!("VIA Protocol Version: 0x{prot_ver:04X}");
+                println!("Layout Options:       0x{layout_opts:08X}");
+                println!("Switch Matrix State:  0x{matrix_state:08X}"); // TODO: Decode
+                println!("VIA FWVER:            0x{fw_ver:08X}");
             } else if args.device_indication {
                 // Works with RGB and single zone backlight keyboards
                 // Device indication doesn't work well with all effects

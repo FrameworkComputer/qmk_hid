@@ -48,10 +48,8 @@ Via
 Usage: qmk_hid via [OPTIONS]
 
 Options:
-      --version
-          Show protocol version
       --info
-          Get device information
+          Get VIA protocol and config information (most likely NOT what you're looking for)
       --device-indication
           Flash device indication (backlight) 3x
       --rgb-brightness [<RGB_BRIGHTNESS>]
@@ -73,7 +71,7 @@ Options:
       --eeprom-reset
           Reset the EEPROM contents (Not supported by all firmware)
       --bootloader
-          Jump to the bootloader
+          Jump to the bootloader (Not supported by all firmware)
   -h, --help
           Print help information
 
@@ -101,14 +99,14 @@ Options:
 
 ```sh
 # If there is only one device, no filter needed
-> qmk_hid via --version
-Protocol Version: 000B
+> qmk_hid via --backlight
+Brightness: 0%
 
 # If there are multiple devices, need to filter by either VID, PID or both
-> qmk_hid via --version
+> qmk_hid via --backlight
 More than 1 device found. Select a specific device with --vid and --pid
-> qmk_hid --vid 3434 via --version
-Protocol Version: 000B
+> qmk_hid --vid 3434 via --backlight
+Brightness: 0%
 
 # Get current RGB brightness
 > qmk_hid via --rgb-brightness 50
