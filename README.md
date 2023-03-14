@@ -90,15 +90,11 @@ Options:
 ###### List available devices
 ```sh
 > qmk_hid -l
-3434:0100 Interface: 1
-  Manufacturer: Some("Keychron")
-  path:         "/dev/hidraw2"
-  Product:      Some("Q1")
-  Release:      100
-  Interface:    1
-  Usage Page:   ff60 (RAW_USAGE_PAGE)
-
-Make sure to select a device with --vid and --pid
+32ac:0014
+  Manufacturer: "Framework Computer Inc"
+  Product:      "Lotus Numpad"
+  FW Version:   0.1.3
+  Serial No:    "FRALDLENA100000000"
 ```
 
 ###### Control that device
