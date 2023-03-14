@@ -268,6 +268,8 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
     let args = ClapCli::parse_from(args);
 
+    println!("LEGACY BOOTLOADER COMPATIBLE!");
+
     match HidApi::new() {
         Ok(api) => {
             let found = find_devices(&api, &args);

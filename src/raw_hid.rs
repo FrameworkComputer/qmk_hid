@@ -20,7 +20,7 @@ pub fn send_message(
     out_len: usize,
 ) -> Result<Vec<u8>, ()> {
     // TODO: Why fill the rest with 0xFE? hidapitester uses 0x00
-    let mut data = vec![0xFE; RAW_HID_BUFFER_SIZE];
+    let mut data = vec![0x00; RAW_HID_BUFFER_SIZE];
     data[0] = 0x00; // NULL report ID
     data[1] = message_id;
 
