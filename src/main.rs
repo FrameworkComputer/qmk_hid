@@ -71,11 +71,7 @@ struct QmkSubcommand {
 #[derive(Parser, Debug)]
 #[command(arg_required_else_help = true)]
 struct ViaSubcommand {
-    /// Show protocol version
-    #[arg(long)]
-    version: bool,
-
-    /// Get device information
+    /// Get VIA protocol and config information (most likely NOT what you're looking for)
     #[arg(long)]
     info: bool,
 
@@ -124,7 +120,7 @@ struct ViaSubcommand {
     #[arg(long)]
     eeprom_reset: bool,
 
-    /// Jump to the bootloader
+    /// Jump to the bootloader (Not supported by all firmware)
     #[arg(long)]
     bootloader: bool,
 }
@@ -160,6 +156,24 @@ struct Found {
     console_usages: Vec<DeviceInfo>,
 }
 
+/// Format BCD version
+///
+/// # Examples
+///
+/// ```
+/// let ver = format_bcd(0x0213);
+/// assert_eq!(ver, "2.1.3");
+/// ```
+fn format_bcd(bcd: u16) -> String {
+    let bytes = bcd.to_be_bytes();
+    let major = bytes[0];
+    let minor = (bytes[1] & 0xF0) >> 4;
+    let patch = bytes[1] & 0x0F;
+    format!("{major}.{minor}.{patch}")
+}
+
+const NOT_SET: &str = "NOT SET";
+
 fn find_devices(api: &HidApi, args: &ClapCli) -> Found {
     let mut found: Found = Found {
         raw_usages: vec![],
@@ -172,26 +186,40 @@ fn find_devices(api: &HidApi, args: &ClapCli) -> Found {
 
         // Print device information
         let usage_page = dev_info.usage_page();
-        if usage_page != RAW_USAGE_PAGE && usage_page != CONSOLE_USAGE_PAGE {
+        if ![RAW_USAGE_PAGE, CONSOLE_USAGE_PAGE].contains(&usage_page) {
             continue;
         }
 
-        if args.list || args.verbose {
-            println!("{vid:04x}:{pid:04x} Interface: {interface}");
-            println!("  Manufacturer: {:?}", dev_info.manufacturer_string());
-            println!("  path:         {:?}", dev_info.path());
-            println!("  Product:      {:?}", dev_info.product_string());
-            println!("  Release:      {:x}", dev_info.release_number());
-            println!("  Interface:    {}", dev_info.interface_number());
-            print!("  Usage Page:   {:x}", dev_info.usage_page());
-            match usage_page {
-                RAW_USAGE_PAGE => println!(" (RAW_USAGE_PAGE)"),
-                CONSOLE_USAGE_PAGE => println!(" (CONSOLE_USAGE_PAGE)"),
-                G_DESK_USAGE_PAGE => println!(" (Generic Desktop Usage Page)"),
-                CONSUMER_USAGE_PAGE => println!(" (CONSUMER_USAGE_PAGE)"),
-                _ => {}
+        if (args.list && usage_page == RAW_USAGE_PAGE) || args.verbose {
+            println!("{vid:04x}:{pid:04x}");
+            let fw_ver = dev_info.release_number();
+            println!(
+                "  Manufacturer: {:?}",
+                dev_info.manufacturer_string().unwrap_or(NOT_SET)
+            );
+            println!(
+                "  Product:      {:?}",
+                dev_info.product_string().unwrap_or(NOT_SET)
+            );
+            println!("  FW Version:   {}", format_bcd(fw_ver));
+            println!(
+                "  Serial No:    {:?}",
+                dev_info.serial_number().unwrap_or(NOT_SET)
+            );
+
+            if args.verbose {
+                println!("  VID/PID:      {vid:04x}:{pid:04x}");
+                println!("  Interface:    {}", dev_info.interface_number());
+                println!("  Path:         {:?}", dev_info.path());
+                print!("  Usage Page:   0x{:04X}", dev_info.usage_page());
+                match usage_page {
+                    RAW_USAGE_PAGE => println!(" (RAW_USAGE_PAGE)"),
+                    CONSOLE_USAGE_PAGE => println!(" (CONSOLE_USAGE_PAGE)"),
+                    G_DESK_USAGE_PAGE => println!(" (Generic Desktop Usage Page)"),
+                    CONSUMER_USAGE_PAGE => println!(" (CONSUMER_USAGE_PAGE)"),
+                    _ => println!(),
+                }
             }
-            println!();
         }
 
         // TODO: Use clap-num for this
@@ -312,10 +340,7 @@ fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
             }
         }
         Some(Commands::Via(args)) => {
-            if args.version {
-                let prot_ver = get_protocol_ver(&device).unwrap();
-                println!("Protocol Version: {prot_ver:04X}");
-            } else if args.eeprom_reset {
+            if args.eeprom_reset {
                 eeprom_reset(&device).unwrap();
             } else if args.bootloader {
                 bootloader_jump(&device).unwrap();
@@ -329,11 +354,11 @@ fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
                 let fw_ver =
                     get_keyboard_value(&device, ViaKeyboardValueId::FirmwareVersion).unwrap();
 
-                println!("Protocol Version:     {prot_ver:04X}");
                 println!("Uptime:               {:?}s", uptime / 1000);
-                println!("Layout Options:       {layout_opts:?}");
-                println!("Switch Matrix State:  {matrix_state:?}"); // TODO: Decode
-                println!("VIA Firmware Version: {fw_ver:?}");
+                println!("VIA Protocol Version: 0x{prot_ver:04X}");
+                println!("Layout Options:       0x{layout_opts:08X}");
+                println!("Switch Matrix State:  0x{matrix_state:08X}"); // TODO: Decode
+                println!("VIA FWVER:            0x{fw_ver:08X}");
             } else if args.device_indication {
                 // Works with RGB and single zone backlight keyboards
                 // Device indication doesn't work well with all effects

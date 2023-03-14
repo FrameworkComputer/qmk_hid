@@ -7,19 +7,13 @@ It will soon be superceded by QMK XAP, but that isn't ready yet.
 
 Tested to work on Windows and Linux, without any drivers or admin privileges.
 
-## Building
-
-Pre-requisites: Rust, libudev
-
-```sh
-cargo build
-ls -l target/debug/qmk_hid
-```
-
 ## Running
 
-The examples call the binary with the name `qmk_hid`. On Windows use
-`qmk_hid.exe` and when running from source, use `cargo run --`.
+Download the latest binary from the [releases page](https://github.com/FrameworkComputer/qmk_hid/releases).
+
+The examples call the binary with the name `qmk_hid`, as used on Linux.
+If you're on Windows, use `qmk_hid.exe`, and when building from source,
+use `cargo run --`.
 
 ###### Show the help
 
@@ -48,10 +42,8 @@ Via
 Usage: qmk_hid via [OPTIONS]
 
 Options:
-      --version
-          Show protocol version
       --info
-          Get device information
+          Get VIA protocol and config information (most likely NOT what you're looking for)
       --device-indication
           Flash device indication (backlight) 3x
       --rgb-brightness [<RGB_BRIGHTNESS>]
@@ -73,7 +65,7 @@ Options:
       --eeprom-reset
           Reset the EEPROM contents (Not supported by all firmware)
       --bootloader
-          Jump to the bootloader
+          Jump to the bootloader (Not supported by all firmware)
   -h, --help
           Print help information
 
@@ -90,29 +82,25 @@ Options:
 ###### List available devices
 ```sh
 > qmk_hid -l
-3434:0100 Interface: 1
-  Manufacturer: Some("Keychron")
-  path:         "/dev/hidraw2"
-  Product:      Some("Q1")
-  Release:      100
-  Interface:    1
-  Usage Page:   ff60 (RAW_USAGE_PAGE)
-
-Make sure to select a device with --vid and --pid
+32ac:0014
+  Manufacturer: "Framework Computer Inc"
+  Product:      "Lotus Numpad"
+  FW Version:   0.1.3
+  Serial No:    "FRALDLENA100000000"
 ```
 
 ###### Control that device
 
 ```sh
 # If there is only one device, no filter needed
-> qmk_hid via --version
-Protocol Version: 000B
+> qmk_hid via --backlight
+Brightness: 0%
 
 # If there are multiple devices, need to filter by either VID, PID or both
-> qmk_hid via --version
+> qmk_hid via --backlight
 More than 1 device found. Select a specific device with --vid and --pid
-> qmk_hid --vid 3434 via --version
-Protocol Version: 000B
+> qmk_hid --vid 3434 via --backlight
+Brightness: 0%
 
 # Get current RGB brightness
 > qmk_hid via --rgb-brightness 50
@@ -173,15 +161,13 @@ qmk_hid via --rgb-color white
 # Note that the effect numbers can be different per keyboard
 # On Lotus we currently enable all, then 38 is `SOLID_REACTIVE_MULTICROSS`
 qmk_hid via --rgb-effect 38
+```
 
-# Factory commands are not guaranteed to work
-# And simulate keypresses ASDF (see QMK's keycodes.h)
-qmk_hid factory --keycode 4
-qmk_hid factory --keycode 22
-qmk_hid factory --keycode 7
-qmk_hid factory --keycode 9
+## Building from source
 
-# Or go through all keypresses (except FN)
-# Only one LED is mapped to each key
-qmk_hid factory --all-keycodes
+Pre-requisites: Rust, libudev
+
+```sh
+cargo build
+ls -l target/debug/qmk_hid
 ```
