@@ -7,19 +7,13 @@ It will soon be superceded by QMK XAP, but that isn't ready yet.
 
 Tested to work on Windows and Linux, without any drivers or admin privileges.
 
-## Building
-
-Pre-requisites: Rust, libudev
-
-```sh
-cargo build
-ls -l target/debug/qmk_hid
-```
-
 ## Running
 
-The examples call the binary with the name `qmk_hid`. On Windows use
-`qmk_hid.exe` and when running from source, use `cargo run --`.
+Download the latest binary from the [releases page](https://github.com/FrameworkComputer/qmk_hid/releases).
+
+The examples call the binary with the name `qmk_hid`, as used on Linux.
+If you're on Windows, use `qmk_hid.exe`, and when building from source,
+use `cargo run --`.
 
 ###### Show the help
 
@@ -167,15 +161,13 @@ qmk_hid via --rgb-color white
 # Note that the effect numbers can be different per keyboard
 # On Lotus we currently enable all, then 38 is `SOLID_REACTIVE_MULTICROSS`
 qmk_hid via --rgb-effect 38
+```
 
-# Factory commands are not guaranteed to work
-# And simulate keypresses ASDF (see QMK's keycodes.h)
-qmk_hid factory --keycode 4
-qmk_hid factory --keycode 22
-qmk_hid factory --keycode 7
-qmk_hid factory --keycode 9
+## Building from source
 
-# Or go through all keypresses (except FN)
-# Only one LED is mapped to each key
-qmk_hid factory --all-keycodes
+Pre-requisites: Rust, libudev
+
+```sh
+cargo build
+ls -l target/debug/qmk_hid
 ```
