@@ -1,6 +1,6 @@
 # QMK HID
 
-Commandline (and soon library) to interact with QMK devices via their raw HID interface.
+Commandline tool to interact with QMK devices via their raw HID interface.
 
 Currently focusing on the VIA API.
 It will soon be superceded by QMK XAP, but that isn't ready yet.
@@ -136,7 +136,7 @@ The command only does something when the firmware has `VIA_EEPROM_ALLOW_RESET` d
 > qmk_hid via --eeprom-config
 ```
 
-###### Factory testing the LEDs
+###### Testing the RGB LEDs
 
 ```sh
 # Use "device indication" to flash backlight 3 times
