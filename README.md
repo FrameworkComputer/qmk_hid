@@ -62,6 +62,8 @@ Options:
           Set backlight brightness percentage or get, if no value provided
       --backlight-breathing [<BACKLIGHT_BREATHING>]
           Set backlight breathing or get, if no value provided [possible values: true, false]
+      --save
+          Save RGB/backlight value, otherwise it won't persist through keyboard reboot. Can be used by itself or together with other argument
       --eeprom-reset
           Reset the EEPROM contents (Not supported by all firmware)
       --bootloader
@@ -109,6 +111,20 @@ Brightness: 50%
 # Set new RGB brightness
 > qmk_hid via --rgb-brightness 100
 Brightness: 100%
+```
+
+**NOTE:** By default the settings are not saved. To make them persistent add
+the `--save` argument. Or run `qmk_hid via --save` by itself. Examples:
+
+```
+# Save directly
+> qmk_hid via --rgb-brightness 100 --save
+
+# Make a couple changes and save everything
+> qmk_hid via --rgb-effect 1
+> qmk_hid via --rgb-color red
+> qmk_hid via --rgb-brightness 100
+> qmk_hid via --save
 ```
 
 ###### Jumping to the bootloader, to reflash.

@@ -14,7 +14,7 @@ pub enum ViaCommandId {
     //DynamicKeymapReset              = 0x06,
     CustomSetValue = 0x07,
     CustomGetValue = 0x08,
-    //CustomSave                      = 0x09,
+    CustomSave = 0x09,
     EepromReset = 0x0A,
     BootloaderJump = 0x0B,
     //DynamicKeymapMacroGetCount      = 0x0C,
@@ -105,6 +105,13 @@ pub fn set_rgb_u8(dev: &HidDevice, value: u8, value_data: u8) -> Result<(), ()> 
     Ok(())
 }
 
+pub fn save_rgb(dev: &HidDevice) -> Result<(), ()> {
+    // data = [ command_id, channel_id, value_id, value_data ]
+    let msg = vec![ViaChannelId::RgbMatrixChannel as u8];
+    send_message(dev, ViaCommandId::CustomSave as u8, Some(&msg), 0)?;
+    Ok(())
+}
+
 pub fn set_rgb_color(dev: &HidDevice, hue: Option<u8>, saturation: Option<u8>) -> Result<(), ()> {
     let (cur_hue, cur_saturation) = get_rgb_color(dev).unwrap();
 
@@ -140,6 +147,13 @@ pub fn get_backlight(dev: &HidDevice, value: u8) -> Result<u8, ()> {
 pub fn set_backlight(dev: &HidDevice, value: u8, value_data: u8) -> Result<(), ()> {
     let msg = vec![ViaChannelId::BacklightChannel as u8, value, value_data];
     send_message(dev, ViaCommandId::CustomSetValue as u8, Some(&msg), 0)?;
+    Ok(())
+}
+
+pub fn save_backlight(dev: &HidDevice) -> Result<(), ()> {
+    // data = [ command_id, channel_id, value_id, value_data ]
+    let msg = vec![ViaChannelId::BacklightChannel as u8];
+    send_message(dev, ViaCommandId::CustomSave as u8, Some(&msg), 0)?;
     Ok(())
 }
 
