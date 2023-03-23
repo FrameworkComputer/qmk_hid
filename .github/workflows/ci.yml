@@ -40,16 +40,24 @@ jobs:
       run: rustup show
 
     - name: Build Linux tool
-      run: cargo build
+      run: |
+        cargo build
+        cargo build --release
 
     - name: Check if Linux tool can start
       run: cargo run -- --help
 
-    - name: Upload Linux tool
+    - name: Upload Linux Debug tool
       uses: actions/upload-artifact@v3
       with:
-        name: qmk_hid
+        name: qmk_hid_debug_linux
         path: target/debug/qmk_hid
+
+    - name: Upload Linux Relase tool
+      uses: actions/upload-artifact@v3
+      with:
+        name: qmk_hid_linux
+        path: target/release/qmk_hid
 
   build-windows:
     name: Build Windows
@@ -61,16 +69,24 @@ jobs:
       run: rustup show
 
     - name: Build Windows tool
-      run: cargo build
+      run: |
+        cargo build
+        cargo build --release
 
     - name: Check if Windows tool can start
       run: cargo run -- --help
 
-    - name: Upload Windows App
+    - name: Upload Windows Debug App
       uses: actions/upload-artifact@v3
       with:
-        name: qmk_hid.exe
+        name: qmk_hid_debug_windows
         path: target/debug/qmk_hid.exe
+
+    - name: Upload Windows Release App
+      uses: actions/upload-artifact@v3
+      with:
+        name: qmk_hid_windows
+        path: target/release/qmk_hid.exe
 
   lints:
     name: Lints
