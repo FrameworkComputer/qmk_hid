@@ -1,5 +1,4 @@
 mod factory;
-mod keycodes;
 mod raw_hid;
 mod via;
 
@@ -12,7 +11,6 @@ extern crate hidapi;
 use hidapi::{DeviceInfo, HidApi, HidDevice};
 
 use crate::factory::*;
-use crate::keycodes::*;
 use crate::raw_hid::*;
 use crate::via::*;
 
@@ -45,14 +43,6 @@ enum Color {
 #[derive(Parser, Debug)]
 #[command(arg_required_else_help = true)]
 struct FactorySubcommand {
-    /// Emulate keypress
-    #[arg(long)]
-    keycode: Option<u16>,
-
-    /// Emulate keypress of all keycodes, one after the other
-    #[arg(long)]
-    all_keycodes: bool,
-
     /// Light up single LED
     #[arg(long)]
     led: Option<u8>,
@@ -111,6 +101,11 @@ struct ViaSubcommand {
     /// Set backlight breathing or get, if no value provided
     #[arg(long)]
     backlight_breathing: Option<Option<bool>>,
+
+    /// Save RGB/backlight value, otherwise it won't persist through keyboard reboot. Can be used
+    /// by itself or together with other argument.
+    #[arg(long)]
+    save: bool,
 
     // TODO:
     // - RGB light
@@ -292,23 +287,6 @@ fn main() {
     };
 }
 
-fn all_keycodes(device: &HidDevice) {
-    let ansi = [
-        KC_ESC, KC_F1, KC_F2, KC_F3, KC_F4, KC_F5, KC_F6, KC_F7, KC_F8, KC_F9, KC_F10, KC_F11,
-        KC_F12, KC_DEL, KC_GRV, KC_1, KC_2, KC_3, KC_4, KC_5, KC_6, KC_7, KC_8, KC_9, KC_0,
-        KC_MINS, KC_EQL, KC_BSPC, KC_TAB, KC_Q, KC_W, KC_E, KC_R, KC_T, KC_Y, KC_U, KC_I, KC_O,
-        KC_P, KC_LBRC, KC_RBRC, KC_BSLS, KC_CAPS, KC_A, KC_S, KC_D, KC_F, KC_G, KC_H, KC_J, KC_K,
-        KC_L, KC_SCLN, KC_QUOT, KC_ENT, KC_LSFT, KC_Z, KC_X, KC_C, KC_V, KC_B, KC_N, KC_M, KC_COMM,
-        KC_DOT, KC_SLSH, KC_RSFT, KC_LCTL, KC_LGUI, KC_LALT, KC_SPC, KC_RALT, KC_RCTL, KC_LEFT,
-        KC_UP, KC_DOWN, KC_RGHT,
-    ];
-    for keycode in ansi {
-        println!("Emulating keycode: {keycode}");
-        send_factory_command(device, 0x01, keycode).unwrap();
-        thread::sleep(Duration::from_millis(100));
-    }
-}
-
 fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
     let vid = dev_info.vendor_id();
     let pid = dev_info.product_id();
@@ -322,16 +300,9 @@ fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
 
     match &args.command {
         Some(Commands::Factory(args)) => {
-            if let Some(keycode) = args.keycode {
-                println!("Emulating keycode: {keycode}");
-                send_factory_command(&device, 0x01, keycode as u8).unwrap();
-            }
             if let Some(led) = args.led {
                 println!("Lighting up LED: {led}");
                 send_factory_command(&device, 0x02, led).unwrap();
-            }
-            if args.all_keycodes {
-                all_keycodes(&device);
             }
         }
         Some(Commands::Qmk(args)) => {
@@ -387,19 +358,22 @@ fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
                 }
                 let brightness = get_rgb_u8(&device, ViaRgbMatrixValue::Brightness as u8).unwrap();
                 let percentage = (100.0 * brightness as f32) / 255.0;
-                println!("Brightness: {}%", percentage.round())
+                println!("Brightness: {}%", percentage.round());
+                save(args.save, &device);
             } else if let Some(arg_effect) = args.rgb_effect {
                 if let Some(effect) = arg_effect {
                     set_rgb_u8(&device, ViaRgbMatrixValue::Effect as u8, effect).unwrap();
                 }
                 let effect = get_rgb_u8(&device, ViaRgbMatrixValue::Effect as u8).unwrap();
-                println!("Effect: {effect}")
+                println!("Effect: {effect}");
+                save(args.save, &device);
             } else if let Some(arg_speed) = args.rgb_effect_speed {
                 if let Some(speed) = arg_speed {
                     set_rgb_u8(&device, ViaRgbMatrixValue::EffectSpeed as u8, speed).unwrap();
                 }
                 let speed = get_rgb_u8(&device, ViaRgbMatrixValue::EffectSpeed as u8).unwrap();
-                println!("Effect Speed: {speed}")
+                println!("Effect Speed: {speed}");
+                save(args.save, &device);
             } else if let Some(arg_saturation) = &args.rgb_saturation {
                 if let Some(saturation) = arg_saturation {
                     set_rgb_color(&device, None, Some(*saturation)).unwrap();
@@ -407,6 +381,7 @@ fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
                 let (hue, saturation) = get_rgb_color(&device).unwrap();
                 println!("Color Hue:        {hue}");
                 println!("Color Saturation: {saturation}");
+                save(args.save, &device);
             } else if let Some(arg_hue) = &args.rgb_hue {
                 if let Some(hue) = arg_hue {
                     set_rgb_color(&device, Some(*hue), None).unwrap();
@@ -414,6 +389,7 @@ fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
                 let (hue, saturation) = get_rgb_color(&device).unwrap();
                 println!("Color Hue:        {hue}");
                 println!("Color Saturation: {saturation}");
+                save(args.save, &device);
             } else if let Some(color) = &args.rgb_color {
                 if let Color::White = color {
                     set_rgb_color(&device, None, Some(0)).unwrap();
@@ -423,6 +399,7 @@ fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
                 let (hue, saturation) = get_rgb_color(&device).unwrap();
                 println!("Color Hue:        {hue}");
                 println!("Color Saturation: {saturation}");
+                save(args.save, &device);
             } else if let Some(arg_backlight) = args.backlight {
                 if let Some(percentage) = arg_backlight {
                     let brightness = (255.0 * percentage as f32) / 100.0;
@@ -436,23 +413,33 @@ fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
                 let brightness =
                     get_backlight(&device, ViaBacklightValue::Brightness as u8).unwrap();
                 let percentage = (100.0 * brightness as f32) / 255.0;
-                println!("Brightness: {}%", percentage.round())
+                println!("Brightness: {}%", percentage.round());
+                save(args.save, &device);
             } else if let Some(arg_breathing) = args.backlight_breathing {
                 if let Some(breathing) = arg_breathing {
                     set_backlight(&device, ViaBacklightValue::Effect as u8, breathing as u8)
                         .unwrap();
                 }
                 let breathing = get_backlight(&device, ViaBacklightValue::Effect as u8).unwrap();
-                println!("Breathing: : {:?}", breathing == 1)
-            //} else if args.rgb_matrix_save {
-            // TODO
-            //set_rgb_u8(&device, ViaRgbMatrixValue::Effect as u8, effect).unwrap();
+                println!("Breathing: : {:?}", breathing == 1);
+                save(args.save, &device);
+            } else if args.save {
+                save(args.save, &device);
             } else {
                 println!("No command specified.");
             }
         }
         _ => {}
     }
+}
+
+fn save(save: bool, dev: &HidDevice) {
+    if !save {
+        return;
+    }
+
+    save_rgb(dev).unwrap();
+    save_backlight(dev).unwrap();
 }
 
 fn color_as_hue(color: Color) -> u8 {

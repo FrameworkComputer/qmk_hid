@@ -1,11 +1,13 @@
 [package]
 name = "qmk_hid"
-version = "0.1.3"
+version = "0.1.5"
 edition = "2021"
+license = "BSD-3-Clause"
+description = "Commandline tool to interact with QMK devices via their raw HID interface"
+authors = ["Daniel Schaefer <dhs@frame.work>"]
+keywords = ["hid", "qmk", "keyboard"]
+repository = "https://github.com/FrameworkComputer/qmk_hid"
 
 [dependencies]
 clap = { version = "4.0", features = ["derive"] }
-
-[dependencies.hidapi]
-version = "2.0.2"
-#features = ["linux-static-hidraw"]
+hidapi = "2.2"

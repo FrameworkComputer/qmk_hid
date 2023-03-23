@@ -1,6 +1,6 @@
 # QMK HID
 
-Commandline (and soon library) to interact with QMK devices via their raw HID interface.
+Commandline tool to interact with QMK devices via their raw HID interface.
 
 Currently focusing on the VIA API.
 It will soon be superceded by QMK XAP, but that isn't ready yet.
@@ -62,6 +62,8 @@ Options:
           Set backlight brightness percentage or get, if no value provided
       --backlight-breathing [<BACKLIGHT_BREATHING>]
           Set backlight breathing or get, if no value provided [possible values: true, false]
+      --save
+          Save RGB/backlight value, otherwise it won't persist through keyboard reboot. Can be used by itself or together with other argument
       --eeprom-reset
           Reset the EEPROM contents (Not supported by all firmware)
       --bootloader
@@ -84,7 +86,7 @@ Options:
 > qmk_hid -l
 32ac:0014
   Manufacturer: "Framework Computer Inc"
-  Product:      "Lotus Numpad"
+  Product:      "Framework 16 Numpad"
   FW Version:   0.1.3
   Serial No:    "FRALDLENA100000000"
 ```
@@ -109,6 +111,20 @@ Brightness: 50%
 # Set new RGB brightness
 > qmk_hid via --rgb-brightness 100
 Brightness: 100%
+```
+
+**NOTE:** By default the settings are not saved. To make them persistent add
+the `--save` argument. Or run `qmk_hid via --save` by itself. Examples:
+
+```
+# Save directly
+> qmk_hid via --rgb-brightness 100 --save
+
+# Make a couple changes and save everything
+> qmk_hid via --rgb-effect 1
+> qmk_hid via --rgb-color red
+> qmk_hid via --rgb-brightness 100
+> qmk_hid via --save
 ```
 
 ###### Jumping to the bootloader, to reflash.
@@ -136,7 +152,7 @@ The command only does something when the firmware has `VIA_EEPROM_ALLOW_RESET` d
 > qmk_hid via --eeprom-config
 ```
 
-###### Factory testing the LEDs
+###### Testing the RGB LEDs
 
 ```sh
 # Use "device indication" to flash backlight 3 times
@@ -159,7 +175,7 @@ qmk_hid via --rgb-color white
 
 # Enable a mode that reacts to keypresses
 # Note that the effect numbers can be different per keyboard
-# On Lotus we currently enable all, then 38 is `SOLID_REACTIVE_MULTICROSS`
+# On Framework 16 we currently enable all, then 38 is `SOLID_REACTIVE_MULTICROSS`
 qmk_hid via --rgb-effect 38
 ```
 
