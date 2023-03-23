@@ -86,7 +86,7 @@ Options:
 > qmk_hid -l
 32ac:0014
   Manufacturer: "Framework Computer Inc"
-  Product:      "Lotus Numpad"
+  Product:      "Framework 16 Numpad"
   FW Version:   0.1.3
   Serial No:    "FRALDLENA100000000"
 ```
@@ -175,7 +175,7 @@ qmk_hid via --rgb-color white
 
 # Enable a mode that reacts to keypresses
 # Note that the effect numbers can be different per keyboard
-# On Lotus we currently enable all, then 38 is `SOLID_REACTIVE_MULTICROSS`
+# On Framework 16 we currently enable all, then 38 is `SOLID_REACTIVE_MULTICROSS`
 qmk_hid via --rgb-effect 38
 ```
 
