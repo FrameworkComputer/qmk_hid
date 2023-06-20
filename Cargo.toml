@@ -11,3 +11,6 @@ repository = "https://github.com/FrameworkComputer/qmk_hid"
 [dependencies]
 clap = { version = "4.0", features = ["derive"] }
 hidapi = "2.2"
+
+[build-dependencies]
+static_vcruntime = "2.0"
