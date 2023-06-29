@@ -1,6 +1,6 @@
 [package]
 name = "qmk_hid"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 license = "BSD-3-Clause"
 description = "Commandline tool to interact with QMK devices via their raw HID interface"
