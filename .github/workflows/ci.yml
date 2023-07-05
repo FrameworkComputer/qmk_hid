@@ -120,5 +120,5 @@ jobs:
         python_ver: '3.11'
         spec: qmk_gui.py
         requirements: 'requirements.txt'
-        upload_exe_with_name: 'qmk_gui.py'
+        upload_exe_with_name: 'qmk_gui.exe'
         options: --onefile, --name "qmk_gui", --windowed
