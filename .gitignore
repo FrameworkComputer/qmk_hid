@@ -1,1 +1,8 @@
 target/
+
+venv/
+
+# pyinstaller
+qmk_gui.spec
+build/
+dist/

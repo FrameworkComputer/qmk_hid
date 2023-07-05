@@ -107,3 +107,18 @@ jobs:
 
     - name: Run cargo clippy
       run: cargo clippy -- -D warnings
+
+  build-gui:
+    name: Build Windows
+    runs-on: windows-2022
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Create Executable
+      uses: Martin005/pyinstaller-action@main
+      with:
+        python_ver: '3.11'
+        spec: qmk_gui.py
+        requirements: 'requirements.txt'
+        upload_exe_with_name: 'qmk_gui.py'
+        options: --onefile, --name "qmk_gui", --windowed
