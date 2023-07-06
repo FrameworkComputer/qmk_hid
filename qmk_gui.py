@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import sys
 
 import PySimpleGUI as sg
@@ -208,12 +209,6 @@ def find_devs(show, verbose):
     devices = []
     for device_dict in hid.enumerate():
         vid = device_dict["vendor_id"]
-        if vid != FWK_VID:
-            continue
-
-        if device_dict['usage_page'] not in [RAW_USAGE_PAGE, CONSOLE_USAGE_PAGE]:
-            continue
-
         pid = device_dict["product_id"]
         product = device_dict["product_string"]
         manufacturer = device_dict["manufacturer_string"]
@@ -221,9 +216,24 @@ def find_devs(show, verbose):
         interface = device_dict['interface_number']
         path = device_dict['path']
 
+        if vid != FWK_VID:
+            if verbose:
+                print("Vendor ID not matching")
+            continue
+
+        if interface != QMK_INTERFACE:
+            if verbose:
+                print("Interface not matching")
+            continue
+        # For some reason on Linux it'll always show usage_page==0
+        if os.name == 'nt' and device_dict['usage_page'] not in [RAW_USAGE_PAGE, CONSOLE_USAGE_PAGE]:
+            if verbose:
+                print("Usage Page not matching")
+            continue
+
         fw_ver = device_dict["release_number"]
 
-        if device_dict['usage_page'] == RAW_USAGE_PAGE or verbose:
+        if (os.name == 'nt' and device_dict['usage_page'] == RAW_USAGE_PAGE) or verbose:
             if show:
                 print(f"Manufacturer: {manufacturer}")
                 print(f"Product:      {product}")
@@ -236,8 +246,7 @@ def find_devs(show, verbose):
                 # TODO: print Usage Page
                 print("")
 
-            if interface == QMK_INTERFACE:
-                devices.append(device_dict)
+        devices.append(device_dict)
 
     return devices
 
@@ -336,10 +345,5 @@ def set_rgb_color(dev, hue, saturation):
 
 if __name__ == "__main__":
     devices = find_devs(show=False, verbose=False)
-
-    #for device in devices:
-    #    if device['product_string'] == 'Laptop 16 Keyboard Module - ANSI':
-    #        continue
-    #    bootloader_jump(device)
 
     main(devices)
