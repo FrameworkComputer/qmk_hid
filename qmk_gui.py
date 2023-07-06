@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+import sys
+
 import PySimpleGUI as sg
 import hid
 
@@ -102,9 +104,24 @@ RGB_EFFECTS = [
     "SOLID_MULTISPLASH",
 ]
 
+def format_fw_ver(fw_ver):
+    fw_ver_major = (fw_ver & 0xFF00) >> 8
+    fw_ver_minor = (fw_ver & 0x00F0) >> 4
+    fw_ver_patch = (fw_ver & 0x000F)
+    return f"{fw_ver_major}.{fw_ver_minor}.{fw_ver_patch}"
+
 def main(devices):
+    device_info = ""
+    for dev in devices:
+        device_info += "{}\n  Serial No: {}\n  FW Version: {}\n".format(
+            dev['product_string'],
+            dev['serial_number'],
+            format_fw_ver(dev['release_number'])
+        )
+
     layout = [
-        [sg.Text("Keyboard")],
+        [sg.Text("Detected Devices")],
+        [sg.Text(device_info)],
 
         [sg.Text("Bootloader")],
         [sg.Button("Bootloader", k='-BOOTLOADER-')],
@@ -205,15 +222,12 @@ def find_devs(show, verbose):
         path = device_dict['path']
 
         fw_ver = device_dict["release_number"]
-        fw_ver_major = (fw_ver & 0xFF00) >> 8
-        fw_ver_minor = (fw_ver & 0x00F0) >> 4
-        fw_ver_patch = (fw_ver & 0x000F)
 
         if device_dict['usage_page'] == RAW_USAGE_PAGE or verbose:
             if show:
                 print(f"Manufacturer: {manufacturer}")
                 print(f"Product:      {product}")
-                print(f"FW Version:   {fw_ver_major}.{fw_ver_minor}.{fw_ver_patch}")
+                print("FW Version:   {}".format(format_fw_ver(fw_ver)))
                 print(f"Serial No:    {sn}")
 
             if verbose:
