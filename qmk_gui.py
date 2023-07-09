@@ -211,11 +211,13 @@ def main(devices):
             # print("Flashing", releases[ver][t])
             flash_firmware(dev, releases[ver][t])
             restart_hint()
+            window['-CHECKBOX-{}-'.format(dev['path'])].update(False, disabled=True)
 
         # Run commands on all selected devices
         for dev in selected_devices:
             if event == "-BOOTLOADER-":
                 bootloader_jump(dev)
+                window['-CHECKBOX-{}-'.format(dev['path'])].update(False, disabled=True)
                 restart_hint()
 
             if event == '-BRIGHTNESS-':
