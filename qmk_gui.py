@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 import os
 import sys
+import time
 
 import PySimpleGUI as sg
 import hid
+
+import uf2conv
 
 # TODO:
 # - Clear EEPROM
@@ -112,21 +115,42 @@ def format_fw_ver(fw_ver):
     return f"{fw_ver_major}.{fw_ver_minor}.{fw_ver_patch}"
 
 def main(devices):
-    device_info = ""
+    device_checkboxes = []
     for dev in devices:
-        device_info += "{}\n  Serial No: {}\n  FW Version: {}\n".format(
+        device_info = "{}\nSerial No: {}\nFW Version: {}\n".format(
             dev['product_string'],
             dev['serial_number'],
             format_fw_ver(dev['release_number'])
         )
+        checkbox = sg.Checkbox(device_info, default=True, key='-CHECKBOX-{}-'.format(dev['path']), enable_events=True)
+        device_checkboxes.append([checkbox])
+
+    releases = find_releases()
+    versions = sorted(list(releases.keys()), reverse=True)
+
+    # Only in the pyinstaller bundle are the FW update binaries included
+    if is_pyinstaller():
+        bundled_update = [
+            [sg.Text("Update Version")],
+            [sg.Text("Version"), sg.Push(), sg.Combo(versions, k='-VERSION-', enable_events=True, default_value=versions[0])],
+            [sg.Text("Type"), sg.Push(), sg.Combo(list(releases[versions[0]]), k='-TYPE-', enable_events=True)],
+            [sg.Text("Make sure the firmware is compatible with\nALL selected devices!")],
+            [sg.Button("Flash", k='-FLASH-', disabled=True)],
+            [sg.HorizontalSeparator()],
+        ]
+    else:
+        bundled_update = []
+
 
     layout = [
         [sg.Text("Detected Devices")],
-        [sg.Text(device_info)],
+    ] + device_checkboxes + [
+        [sg.HorizontalSeparator()],
 
         [sg.Text("Bootloader")],
         [sg.Button("Bootloader", k='-BOOTLOADER-')],
-
+        [sg.HorizontalSeparator()],
+    ] + bundled_update + [
         [sg.Text("Single-Zone Brightness")],
         # TODO: Get default from device
         [sg.Slider((0, 255), orientation='h', default_value=120,
@@ -151,21 +175,48 @@ def main(devices):
         [sg.Text("RGB Effect")],
         [sg.Combo(RGB_EFFECTS, k='-RGB-EFFECT-', enable_events=True)],
 
+        [sg.HorizontalSeparator()],
         [sg.Text("Save Settings")],
         [sg.Button("Save", k='-SAVE-'), sg.Button("Clear EEPROM", k='-CLEAR-EEPROM-')],
-
-        [sg.Button("Quit")]
     ]
     window = sg.Window("QMK Keyboard Control", layout)
+
+    selected_devices = []
 
     while True:
         event, values = window.read()
         #print('Event', event)
         #print('Values', values)
 
-        for dev in devices:
+        selected_devices = [
+            dev for dev in devices if
+            values and values['-CHECKBOX-{}-'.format(dev['path'])]
+        ]
+            # print("Selected {} devices".format(len(selected_devices)))
+
+        # Updating firmware
+        if event == "-FLASH-" and len(selected_devices) != 1:
+            sg.Popup('To flash select exactly 1 device.')
+            continue
+        if event == "-VERSION-":
+            # After selecting a version, we can list the types of firmware available for this version
+            types = list(releases[values['-VERSION-']])
+            window['-TYPE-'].update(value=types[0], values=types)
+        if event == "-TYPE-":
+            # Once the user has selected a type, the exact firmware file is known and can be flashed
+            window['-FLASH-'].update(disabled=False)
+        if event == "-FLASH-":
+            ver = values['-VERSION-']
+            t = values['-TYPE-']
+            # print("Flashing", releases[ver][t])
+            flash_firmware(dev, releases[ver][t])
+            restart_hint()
+
+        # Run commands on all selected devices
+        for dev in selected_devices:
             if event == "-BOOTLOADER-":
                 bootloader_jump(dev)
+                restart_hint()
 
             if event == '-BRIGHTNESS-':
                 brightness(dev, int(values['-BRIGHTNESS-']))
@@ -196,10 +247,60 @@ def main(devices):
             if event == '-CLEAR-EEPROM-':
                 eeprom_reset(dev)
 
-        if event == "Quit" or event == sg.WIN_CLOSED:
+        if event == sg.WIN_CLOSED:
             break
 
     window.close()
+
+
+def is_pyinstaller():
+    return getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')
+
+
+def resource_path():
+    """ Get absolute path to resource, works for dev and for PyInstaller"""
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return base_path
+
+
+# Example return value
+# {
+#   '0.1.7': {
+#     'ansi': 'framework_ansi_default_v0.1.7.uf2',
+#     'gridpad': 'framework_gridpad_default_v0.1.7.uf2'
+#   },
+#   '0.1.8': {
+#     'ansi': 'framework_ansi_default.uf2',
+#     'gridpad': 'framework_gridpad_default.uf2',
+#   }
+# }
+def find_releases():
+    from os import listdir
+    from os.path import isfile, join
+    import re
+
+    res_path = resource_path()
+    versions = listdir(os.path.join(res_path, "releases"))
+    releases = {}
+    for version in versions:
+        path = join(res_path, "releases", version)
+        releases[version] = {}
+        for filename in listdir(path):
+            if not isfile(join(path, filename)):
+                continue
+            type_search = re.search('framework_(.*)_default.*\.uf2', filename)
+            if not type_search:
+                print(f"Filename '{filename}' not matching patten!")
+                sys.exit(1)
+                continue
+            fw_type = type_search.group(1)
+            releases[version][fw_type] = os.path.join(res_path, "releases", version, filename)
+    return releases
 
 
 def find_devs(show, verbose):
@@ -343,7 +444,48 @@ def set_rgb_color(dev, hue, saturation):
     send_message(dev, CUSTOM_SET_VALUE, msg, 0)
 
 
+def restart_hint():
+    sg.Popup('After updating a device, \nrestart the application\nto reload the connections.')
+
+
+def flash_firmware(dev, fw_path):
+    print(f"Flashing {fw_path}")
+
+    # First jump to bootloader
+    drives = uf2conv.list_drives()
+    if not drives:
+        print("jump to bootloader")
+        bootloader_jump(dev)
+
+    timeout = 10  # 5s
+    while not drives:
+        if timeout == 0:
+            print("Failed to find device in bootloader")
+            # TODO: Handle return value
+            return False
+        # Wait for it to appear
+        time.sleep(0.5)
+        timeout -= 1
+        drives = uf2conv.get_drives()
+
+
+    if len(drives) == 0:
+        print("No drive to deploy.")
+        return False
+
+    # Firmware is pretty small, can just fit it all into memory
+    with open(fw_path, 'rb') as f:
+        fw_buf = f.read()
+
+    for d in drives:
+        print("Flashing {} ({})".format(d, uf2conv.board_id(d)))
+        uf2conv.write_file(d + "/NEW.UF2", fw_buf)
+
+    print("Flashing finished")
+
+
 if __name__ == "__main__":
     devices = find_devs(show=False, verbose=False)
+    print("Found {} devices".format(len(devices)))
 
     main(devices)
