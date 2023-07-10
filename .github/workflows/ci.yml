@@ -122,7 +122,7 @@ jobs:
         Invoke-WebRequest -Uri https://github.com/FrameworkComputer/qmk_firmware/releases/download/v0.1.9/framework_iso_default_v0.1.9.uf2 -OutFile releases\0.1.9\framework_iso_default.uf2
         Invoke-WebRequest -Uri https://github.com/FrameworkComputer/qmk_firmware/releases/download/v0.1.9/framework_jis_default_v0.1.9.uf2 -OutFile releases\0.1.9\framework_jis_default.uf2
         Invoke-WebRequest -Uri https://github.com/FrameworkComputer/qmk_firmware/releases/download/v0.1.9/framework_numpad_default_v0.1.9.uf2 -OutFile releases\0.1.9\framework_numpad_default.uf2
-        Invoke-WebRequest -Uri https://github.com/FrameworkComputer/qmk_firmware/releases/download/v0.1.9/framework_gridpad_default_v0.1.9.uf2 -OutFile releases\0.1.9\framework_gridpad_default.uf2
+        Invoke-WebRequest -Uri https://github.com/FrameworkComputer/qmk_firmware/releases/download/v0.1.9/framework_macropad_default_v0.1.9.uf2 -OutFile releases\0.1.9\framework_macropad_default.uf2
         mkdir releases\0.1.8
         Invoke-WebRequest -Uri https://github.com/FrameworkComputer/qmk_firmware/releases/download/v0.1.8/framework_ansi_default.uf2 -OutFile releases\0.1.8\framework_ansi_default.uf2
         Invoke-WebRequest -Uri https://github.com/FrameworkComputer/qmk_firmware/releases/download/v0.1.8/framework_iso_default.uf2 -OutFile releases\0.1.8\framework_iso_default.uf2
