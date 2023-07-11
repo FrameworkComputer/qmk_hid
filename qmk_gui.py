@@ -125,11 +125,13 @@ def main(devices):
         checkbox = sg.Checkbox(device_info, default=True, key='-CHECKBOX-{}-'.format(dev['path']), enable_events=True)
         device_checkboxes.append([checkbox])
 
-    releases = find_releases()
-    versions = sorted(list(releases.keys()), reverse=True)
+
 
     # Only in the pyinstaller bundle are the FW update binaries included
     if is_pyinstaller():
+        releases = find_releases()
+        versions = sorted(list(releases.keys()), reverse=True)
+
         bundled_update = [
             [sg.Text("Update Version")],
             [sg.Text("Version"), sg.Push(), sg.Combo(versions, k='-VERSION-', enable_events=True, default_value=versions[0])],
