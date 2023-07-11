@@ -16,6 +16,7 @@ import uf2conv
 # - Show connected devices
 #   - Get firmware version
 
+PROGRAM_VERSION = "0.1.7"
 FWK_VID = 0x32AC
 
 QMK_INTERFACE = 0x01
@@ -180,6 +181,7 @@ def main(devices):
         [sg.HorizontalSeparator()],
         [sg.Text("Save Settings")],
         [sg.Button("Save", k='-SAVE-'), sg.Button("Clear EEPROM", k='-CLEAR-EEPROM-')],
+        [sg.Text(f"Program Version: {PROGRAM_VERSION}")],
     ]
     window = sg.Window("QMK Keyboard Control", layout)
 
