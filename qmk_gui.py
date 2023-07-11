@@ -16,6 +16,7 @@ import uf2conv
 # - Show connected devices
 #   - Get firmware version
 
+PROGRAM_VERSION = "0.1.7"
 FWK_VID = 0x32AC
 
 QMK_INTERFACE = 0x01
@@ -125,11 +126,13 @@ def main(devices):
         checkbox = sg.Checkbox(device_info, default=True, key='-CHECKBOX-{}-'.format(dev['path']), enable_events=True)
         device_checkboxes.append([checkbox])
 
-    releases = find_releases()
-    versions = sorted(list(releases.keys()), reverse=True)
+
 
     # Only in the pyinstaller bundle are the FW update binaries included
     if is_pyinstaller():
+        releases = find_releases()
+        versions = sorted(list(releases.keys()), reverse=True)
+
         bundled_update = [
             [sg.Text("Update Version")],
             [sg.Text("Version"), sg.Push(), sg.Combo(versions, k='-VERSION-', enable_events=True, default_value=versions[0])],
@@ -178,6 +181,7 @@ def main(devices):
         [sg.HorizontalSeparator()],
         [sg.Text("Save Settings")],
         [sg.Button("Save", k='-SAVE-'), sg.Button("Clear EEPROM", k='-CLEAR-EEPROM-')],
+        [sg.Text(f"Program Version: {PROGRAM_VERSION}")],
     ]
     window = sg.Window("QMK Keyboard Control", layout)
 
