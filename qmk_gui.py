@@ -5,6 +5,9 @@ import time
 
 import PySimpleGUI as sg
 import hid
+# TODO: Linux
+from win32api import GetKeyState, keybd_event
+from win32con import VK_NUMLOCK, VK_CAPITAL
 
 import uf2conv
 
@@ -115,6 +118,10 @@ def format_fw_ver(fw_ver):
     fw_ver_patch = (fw_ver & 0x000F)
     return f"{fw_ver_major}.{fw_ver_minor}.{fw_ver_patch}"
 
+def get_numlock_state():
+    # TODO: Handle Linux
+    return GetKeyState(VK_NUMLOCK)
+
 def main(devices):
     device_checkboxes = []
     for dev in devices:
@@ -177,17 +184,26 @@ def main(devices):
 
         [sg.Text("RGB Effect")],
         [sg.Combo(RGB_EFFECTS, k='-RGB-EFFECT-', enable_events=True)],
+        [sg.HorizontalSeparator()],
+
+        [sg.Text("OS Numlock Setting")],
+        [sg.Text("State: "), sg.Text("", k='-NUMLOCK-STATE-'), sg.Push() ,sg.Button("Refresh")],
+        [sg.Button("Send Numlock Toggle", k='-NUMLOCK-TOGGLE-')],
 
         [sg.HorizontalSeparator()],
         [sg.Text("Save Settings")],
         [sg.Button("Save", k='-SAVE-'), sg.Button("Clear EEPROM", k='-CLEAR-EEPROM-')],
         [sg.Text(f"Program Version: {PROGRAM_VERSION}")],
     ]
-    window = sg.Window("QMK Keyboard Control", layout)
+    window = sg.Window("QMK Keyboard Control", layout, finalize=True)
 
     selected_devices = []
 
     while True:
+        numlock_on = get_numlock_state()
+        if numlock_on is not None:
+            window['-NUMLOCK-STATE-'].update("On (Numbers)" if numlock_on else "Off (Arrows)")
+
         event, values = window.read()
         #print('Event', event)
         #print('Values', values)
@@ -216,6 +232,11 @@ def main(devices):
             flash_firmware(dev, releases[ver][t])
             restart_hint()
             window['-CHECKBOX-{}-'.format(dev['path'])].update(False, disabled=True)
+
+        if event == "-NUMLOCK-TOGGLE-":
+            # TODO: Linux
+            keybd_event(VK_NUMLOCK, 0x3A, 0x1, 0)
+            keybd_event(VK_NUMLOCK, 0x3A, 0x3, 0)
 
         # Run commands on all selected devices
         for dev in selected_devices:
