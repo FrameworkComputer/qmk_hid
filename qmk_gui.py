@@ -20,7 +20,7 @@ import uf2conv
 # - Show connected devices
 #   - Get firmware version
 
-PROGRAM_VERSION = "0.1.7"
+PROGRAM_VERSION = "0.1.8"
 FWK_VID = 0x32AC
 
 QMK_INTERFACE = 0x01
