@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import contextlib
 import os
 import sys
 import subprocess
@@ -123,27 +124,24 @@ def format_fw_ver(fw_ver):
 def get_numlock_state():
     if os.name == 'nt':
         return GetKeyState(VK_NUMLOCK)
-    else:
-        try:
-            output = subprocess.run(['numlockx', 'status'], stdout=subprocess.PIPE).stdout
-            if b'on' in output:
-                return True
-            elif b'off' in output:
-                return False
-        except FileNotFoundError:
-            # Ignore tool not found, just return None
-            pass
+    with contextlib.suppress(FileNotFoundError):
+        output = subprocess.run(['numlockx', 'status'], stdout=subprocess.PIPE).stdout
+        if b'on' in output:
+            return True
+        elif b'off' in output:
+            return False
 
 
 def main(devices):
     device_checkboxes = []
     for dev in devices:
-        device_info = "{}\nSerial No: {}\nFW Version: {}\n".format(
-            dev['product_string'],
-            dev['serial_number'],
-            format_fw_ver(dev['release_number'])
+        device_info = f"{dev['product_string']}\nSerial No: {dev['serial_number']}\nFW Version: {format_fw_ver(dev['release_number'])}\n"
+        checkbox = sg.Checkbox(
+            device_info,
+            default=True,
+            key=f"-CHECKBOX-{dev['path']}-",
+            enable_events=True,
         )
-        checkbox = sg.Checkbox(device_info, default=True, key='-CHECKBOX-{}-'.format(dev['path']), enable_events=True)
         device_checkboxes.append([checkbox])
 
 
@@ -226,11 +224,10 @@ def main(devices):
         #print('Values', values)
 
         selected_devices = [
-            dev for dev in devices if
-            values and values['-CHECKBOX-{}-'.format(dev['path'])]
+            dev
+            for dev in devices
+            if values and values[f"-CHECKBOX-{dev['path']}-"]
         ]
-            # print("Selected {} devices".format(len(selected_devices)))
-
         # Updating firmware
         if event == "-FLASH-" and len(selected_devices) != 1:
             sg.Popup('To flash select exactly 1 device.')
@@ -248,7 +245,7 @@ def main(devices):
             # print("Flashing", releases[ver][t])
             flash_firmware(dev, releases[ver][t])
             restart_hint()
-            window['-CHECKBOX-{}-'.format(dev['path'])].update(False, disabled=True)
+            window[f"-CHECKBOX-{dev['path']}-"].update(False, disabled=True)
 
         if event == "-NUMLOCK-TOGGLE-":
             if os.name == 'nt':
@@ -261,7 +258,7 @@ def main(devices):
         for dev in selected_devices:
             if event == "-BOOTLOADER-":
                 bootloader_jump(dev)
-                window['-CHECKBOX-{}-'.format(dev['path'])].update(False, disabled=True)
+                window[f"-CHECKBOX-{dev['path']}-"].update(False, disabled=True)
                 restart_hint()
 
             if event == '-BRIGHTNESS-':
@@ -356,10 +353,6 @@ def find_devs(show, verbose):
     devices = []
     for device_dict in hid.enumerate():
         vid = device_dict["vendor_id"]
-        pid = device_dict["product_id"]
-        product = device_dict["product_string"]
-        manufacturer = device_dict["manufacturer_string"]
-        sn = device_dict['serial_number']
         interface = device_dict['interface_number']
         path = device_dict['path']
 
@@ -378,20 +371,24 @@ def find_devs(show, verbose):
                 print("Usage Page not matching")
             continue
 
-        fw_ver = device_dict["release_number"]
-
         if (os.name == 'nt' and device_dict['usage_page'] == RAW_USAGE_PAGE) or verbose:
             if show:
+                manufacturer = device_dict["manufacturer_string"]
                 print(f"Manufacturer: {manufacturer}")
+                product = device_dict["product_string"]
                 print(f"Product:      {product}")
-                print("FW Version:   {}".format(format_fw_ver(fw_ver)))
+                fw_ver = device_dict["release_number"]
+
+                print(f"FW Version:   {format_fw_ver(fw_ver)}")
+                sn = device_dict['serial_number']
                 print(f"Serial No:    {sn}")
 
-            if verbose:
-                print(f"VID/PID:      {vid:02X}:{pid:02X}")
-                print(f"Interface:    {interface}")
-                # TODO: print Usage Page
-                print("")
+        if verbose:
+            pid = device_dict["product_id"]
+            print(f"VID/PID:      {vid:02X}:{pid:02X}")
+            print(f"Interface:    {interface}")
+            # TODO: print Usage Page
+            print("")
 
         devices.append(device_dict)
 
@@ -417,11 +414,7 @@ def send_message(dev, message_id, msg, out_len):
         #h.set_nonblocking(0)
         h.write(data)
 
-        if out_len == 0:
-            return None
-
-        out_data = h.read(out_len)
-        return out_data
+        return None if out_len == 0 else h.read(out_len)
     except IOError as ex:
         print(ex)
         sys.exit(1)
@@ -524,14 +517,14 @@ def flash_firmware(dev, fw_path):
         fw_buf = f.read()
 
     for d in drives:
-        print("Flashing {} ({})".format(d, uf2conv.board_id(d)))
-        uf2conv.write_file(d + "/NEW.UF2", fw_buf)
+        print(f"Flashing {d} ({uf2conv.board_id(d)})")
+        uf2conv.write_file(f"{d}/NEW.UF2", fw_buf)
 
     print("Flashing finished")
 
 
 if __name__ == "__main__":
     devices = find_devs(show=False, verbose=False)
-    print("Found {} devices".format(len(devices)))
+    print(f"Found {len(devices)} devices")
 
     main(devices)
