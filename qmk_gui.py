@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 import os
 import sys
+import subprocess
 import time
 
 import PySimpleGUI as sg
 import hid
+if os.name == 'nt':
+    from win32api import GetKeyState, keybd_event
+    from win32con import VK_NUMLOCK, VK_CAPITAL
 
 import uf2conv
 
@@ -16,7 +20,7 @@ import uf2conv
 # - Show connected devices
 #   - Get firmware version
 
-PROGRAM_VERSION = "0.1.7"
+PROGRAM_VERSION = "0.1.8"
 FWK_VID = 0x32AC
 
 QMK_INTERFACE = 0x01
@@ -115,6 +119,22 @@ def format_fw_ver(fw_ver):
     fw_ver_patch = (fw_ver & 0x000F)
     return f"{fw_ver_major}.{fw_ver_minor}.{fw_ver_patch}"
 
+
+def get_numlock_state():
+    if os.name == 'nt':
+        return GetKeyState(VK_NUMLOCK)
+    else:
+        try:
+            output = subprocess.run(['numlockx', 'status'], stdout=subprocess.PIPE).stdout
+            if b'on' in output:
+                return True
+            elif b'off' in output:
+                return False
+        except FileNotFoundError:
+            # Ignore tool not found, just return None
+            pass
+
+
 def main(devices):
     device_checkboxes = []
     for dev in devices:
@@ -177,17 +197,30 @@ def main(devices):
 
         [sg.Text("RGB Effect")],
         [sg.Combo(RGB_EFFECTS, k='-RGB-EFFECT-', enable_events=True)],
+        [sg.HorizontalSeparator()],
+
+        [sg.Text("OS Numlock Setting")],
+        [sg.Text("State: "), sg.Text("", k='-NUMLOCK-STATE-'), sg.Push() ,sg.Button("Refresh", k='-NUMLOCK-REFRESH-', disabled=True)],
+        [sg.Button("Send Numlock Toggle", k='-NUMLOCK-TOGGLE-', disabled=True)],
 
         [sg.HorizontalSeparator()],
         [sg.Text("Save Settings")],
         [sg.Button("Save", k='-SAVE-'), sg.Button("Clear EEPROM", k='-CLEAR-EEPROM-')],
         [sg.Text(f"Program Version: {PROGRAM_VERSION}")],
     ]
-    window = sg.Window("QMK Keyboard Control", layout)
+    window = sg.Window("QMK Keyboard Control", layout, finalize=True)
 
     selected_devices = []
 
     while True:
+        numlock_on = get_numlock_state()
+        if numlock_on is None and os != 'nt':
+            window['-NUMLOCK-STATE-'].update("Unknown, please install the 'numlockx' command")
+        else:
+            window['-NUMLOCK-REFRESH-'].update(disabled=False)
+            window['-NUMLOCK-TOGGLE-'].update(disabled=False)
+            window['-NUMLOCK-STATE-'].update("On (Numbers)" if numlock_on else "Off (Arrows)")
+
         event, values = window.read()
         #print('Event', event)
         #print('Values', values)
@@ -216,6 +249,13 @@ def main(devices):
             flash_firmware(dev, releases[ver][t])
             restart_hint()
             window['-CHECKBOX-{}-'.format(dev['path'])].update(False, disabled=True)
+
+        if event == "-NUMLOCK-TOGGLE-":
+            if os.name == 'nt':
+                keybd_event(VK_NUMLOCK, 0x3A, 0x1, 0)
+                keybd_event(VK_NUMLOCK, 0x3A, 0x3, 0)
+            else:
+                out = subprocess.check_output(['numlockx', 'toggle'])
 
         # Run commands on all selected devices
         for dev in selected_devices:
