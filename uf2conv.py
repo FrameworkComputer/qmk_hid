@@ -34,17 +34,15 @@ familyid = 0x0
 
 
 def is_uf2(buf):
-    w = struct.unpack("<II", buf[0:8])
+    w = struct.unpack("<II", buf[:8])
     return w[0] == UF2_MAGIC_START0 and w[1] == UF2_MAGIC_START1
 
 def is_hex(buf):
     try:
-        w = buf[0:30].decode("utf-8")
+        w = buf[:30].decode("utf-8")
     except UnicodeDecodeError:
         return False
-    if w[0] == ':' and re.match(b"^[:0-9a-fA-F\r\n]+$", buf):
-        return True
-    return False
+    return bool(w[0] == ':' and re.match(b"^[:0-9a-fA-F\r\n]+$", buf))
 
 def convert_from_uf2(buf):
     global appstartaddr
@@ -59,23 +57,23 @@ def convert_from_uf2(buf):
     for blockno in range(numblocks):
         ptr = blockno * 512
         block = buf[ptr:ptr + 512]
-        hd = struct.unpack(b"<IIIIIIII", block[0:32])
+        hd = struct.unpack(b"<IIIIIIII", block[:32])
         if hd[0] != UF2_MAGIC_START0 or hd[1] != UF2_MAGIC_START1:
-            print("Skipping block at " + ptr + "; bad magic")
+            print(f"Skipping block at {ptr}; bad magic")
             continue
         if hd[2] & 1:
             # NO-flash flag set; skip block
             continue
         datalen = hd[4]
         if datalen > 476:
-            assert False, "Invalid UF2 data size at " + ptr
+            assert False, f"Invalid UF2 data size at {ptr}"
         newaddr = hd[3]
-        if (hd[2] & 0x2000) and (currfamilyid == None):
+        if hd[2] & 0x2000 and currfamilyid is None:
             currfamilyid = hd[7]
-        if curraddr == None or ((hd[2] & 0x2000) and hd[7] != currfamilyid):
+        if curraddr is None or ((hd[2] & 0x2000) and hd[7] != currfamilyid):
             currfamilyid = hd[7]
             curraddr = newaddr
-            if familyid == 0x0 or familyid == hd[7]:
+            if familyid in [0x0, hd[7]]:
                 appstartaddr = newaddr
         print(f"  flags:      0x{hd[2]:02x}")
         print(f"  addr:       0x{hd[3]:02x}")
@@ -86,11 +84,11 @@ def convert_from_uf2(buf):
         print()
         padding = newaddr - curraddr
         if padding < 0:
-            assert False, "Block out of order at " + ptr
+            assert False, f"Block out of order at {ptr}"
         if padding > 10*1024*1024:
-            assert False, "More than 10M of padding needed at " + ptr
+            assert False, f"More than 10M of padding needed at {ptr}"
         if padding % 4 != 0:
-            assert False, "Non-word padding size at " + ptr
+            assert False, f"Non-word padding size at {ptr}"
         while padding > 0:
             padding -= 4
             outp.append(b"\x00\x00\x00\x00")
@@ -98,25 +96,24 @@ def convert_from_uf2(buf):
             outp.append(block[32 : 32 + datalen])
         curraddr = newaddr + datalen
         if hd[2] & 0x2000:
-            if hd[7] in families_found.keys():
-                if families_found[hd[7]] > newaddr:
-                    families_found[hd[7]] = newaddr
+            if hd[7] in families_found:
+                families_found[hd[7]] = min(families_found[hd[7]], newaddr)
             else:
                 families_found[hd[7]] = newaddr
-        if prev_flag == None:
+        if prev_flag is None:
             prev_flag = hd[2]
         if prev_flag != hd[2]:
             all_flags_same = False
         if blockno == (numblocks - 1):
             print("--- UF2 File Header Info ---")
             families = load_families()
-            for family_hex in families_found.keys():
+            for family_hex, value_ in families_found.items():
                 family_short_name = ""
                 for name, value in families.items():
                     if value == family_hex:
                         family_short_name = name
                 print("Family ID is {:s}, hex value is 0x{:08x}".format(family_short_name,family_hex))
-                print("Target Address is 0x{:08x}".format(families_found[family_hex]))
+                print("Target Address is 0x{:08x}".format(value_))
             if all_flags_same:
                 print("All block flag values consistent, 0x{:04x}".format(hd[2]))
             else:
@@ -174,7 +171,7 @@ class Block:
         hd = struct.pack("<IIIIIIII",
             UF2_MAGIC_START0, UF2_MAGIC_START1,
             flags, self.addr, 256, blockno + blocks_offset, blocks_offset + blocks_reserved + numblocks, familyid)
-        hd += self.bytes[0:256]
+        hd += self.bytes[:256]
         while len(hd) < 512 - 4:
             hd += b"\x00"
         hd += struct.pack("<I", UF2_MAGIC_END)
@@ -203,7 +200,7 @@ def convert_from_hex_to_uf2(buf, blocks_reserved=0, blocks_offset=0):
             break
         elif tp == 0:
             addr = upper + ((rec[1] << 8) | rec[2])
-            if appstartaddr == None:
+            if appstartaddr is None:
                 appstartaddr = addr
             i = 4
             while i < len(rec) - 1:
@@ -216,7 +213,7 @@ def convert_from_hex_to_uf2(buf, blocks_reserved=0, blocks_offset=0):
     numblocks = len(blocks)
     print(f"Converted to {numblocks} blocks")
     resfile = b""
-    for i in range(0, numblocks):
+    for i in range(numblocks):
         resfile += blocks[i].encode(i, numblocks, blocks_reserved, blocks_offset)
     return resfile
 
@@ -238,10 +235,10 @@ def get_drives():
         if sys.platform == "darwin":
             rootpath = "/Volumes"
         elif sys.platform == "linux":
-            tmp = rootpath + "/" + os.environ["USER"]
+            tmp = f"{rootpath}/" + os.environ["USER"]
             if os.path.isdir(tmp):
                 rootpath = tmp
-            tmp = "/run" + rootpath + "/" + os.environ["USER"]
+            tmp = f"/run{rootpath}/" + os.environ["USER"]
             if os.path.isdir(tmp):
                 rootpath = tmp
         for d in os.listdir(rootpath):
@@ -251,7 +248,7 @@ def get_drives():
     def has_info(d):
         try:
             return os.path.isfile(d + INFO_FILE)
-        except:
+        except Exception:
             return False
 
     return list(filter(has_info, drives))
@@ -260,7 +257,7 @@ def get_drives():
 def board_id(path):
     with open(path + INFO_FILE, mode='r') as file:
         file_content = file.read()
-    return re.search("Board-ID: ([^\r\n]*)", file_content).group(1)
+    return re.search("Board-ID: ([^\r\n]*)", file_content)[1]
 
 
 def list_drives():
@@ -283,11 +280,7 @@ def load_families():
     with open(pathname) as f:
         raw_families = json.load(f)
 
-    families = {}
-    for family in raw_families:
-        families[family["short_name"]] = int(family["id"], 0)
-
-    return families
+    return {family["short_name"]: int(family["id"], 0) for family in raw_families}
 
 
 def main():
@@ -295,6 +288,7 @@ def main():
     def error(msg):
         print(msg, file=sys.stderr)
         sys.exit(1)
+
     parser = argparse.ArgumentParser(description='Convert to UF2 or flash directly.')
     parser.add_argument('input', metavar='INPUT', type=str, nargs='?',
                         help='input file (HEX, BIN or UF2)')
@@ -369,8 +363,8 @@ def main():
                   (ext, len(outbuf), appstartaddr))
         if args.convert or ext != "uf2":
             drives = []
-            if args.output == None:
-                args.output = "flash." + ext
+            if args.output is None:
+                args.output = f"flash.{ext}"
         else:
             drives = get_drives()
 
@@ -381,8 +375,8 @@ def main():
                 error("No drive to deploy.")
         if outbuf:
             for d in drives:
-                print("Flashing %s (%s)" % (d, board_id(d)))
-                write_file(d + "/NEW.UF2", outbuf)
+                print(f"Flashing {d} ({board_id(d)})")
+                write_file(f"{d}/NEW.UF2", outbuf)
 
 
 if __name__ == "__main__":
