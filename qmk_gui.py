@@ -205,7 +205,12 @@ def main(devices):
         [sg.Button("Save", k='-SAVE-'), sg.Button("Clear EEPROM", k='-CLEAR-EEPROM-')],
         [sg.Text(f"Program Version: {PROGRAM_VERSION}")],
     ]
-    window = sg.Window("QMK Keyboard Control", layout, finalize=True)
+
+    icon_path = None
+    if os.name == 'nt':
+        ICON_NAME = 'logo_cropped_transparent_keyboard_48x48.ico'
+        icon_path = os.path.join(resource_path(), 'res', ICON_NAME) if is_pyinstaller() else os.path.join('res', ICON_NAME)
+    window = sg.Window("QMK Keyboard Control", layout, finalize=True, icon=icon_path)
 
     selected_devices = []
 
