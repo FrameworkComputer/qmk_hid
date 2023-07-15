@@ -19,6 +19,8 @@ import uf2conv
 PROGRAM_VERSION = "0.1.8"
 FWK_VID = 0x32AC
 
+DEBUG_PRINT = False
+
 QMK_INTERFACE = 0x01
 RAW_HID_BUFFER_SIZE = 32
 
@@ -108,6 +110,10 @@ RGB_EFFECTS = [
     "SOLID_SPLASH",
     "SOLID_MULTISPLASH",
 ]
+
+def debug_print(args=""):
+    if DEBUG_PRINT:
+        print(args)
 
 def format_fw_ver(fw_ver):
     fw_ver_major = (fw_ver & 0xFF00) >> 8
@@ -202,6 +208,8 @@ def main(devices):
     window = sg.Window("QMK Keyboard Control", layout, finalize=True)
 
     selected_devices = []
+
+    window.start_thread(lambda: backlight_watcher(window, devices), (THREAD_KEY, THREAD_EXITING))
 
     while True:
         numlock_on = get_numlock_state()
@@ -301,6 +309,50 @@ def resource_path():
         base_path = os.path.abspath(".")
 
     return base_path
+
+
+THREAD_KEY = '-THREAD-'
+THREAD_EXITING = '-THREAD EXITING-'
+def backlight_watcher(window, devs):
+    prev_brightness = {}
+    while True:
+        for dev in devs:
+            brightness = get_backlight(dev, BACKLIGHT_VALUE_BRIGHTNESS)
+            rgb_brightness = get_rgb_u8(dev, RGB_MATRIX_VALUE_BRIGHTNESS)
+
+            br_changed = False
+            rgb_br_changed = False
+            if dev['path'] in prev_brightness:
+                if brightness != prev_brightness[dev['path']]['brightness']:
+                    debug_print("White Brightness Changed")
+                    br_changed =  True
+                if rgb_brightness != prev_brightness[dev['path']]['rgb_brightness']:
+                    debug_print("RGB Brightness Changed")
+                    rgb_br_changed =  True
+            prev_brightness[dev['path']] = {
+                'brightness': brightness,
+                'rgb_brightness': rgb_brightness,
+            }
+
+            if br_changed or rgb_br_changed:
+                # Update other keyboards
+                new_brightness = brightness if br_changed else rgb_brightness
+                debug_print("Updating based on {}".format(dev['product_string']))
+                debug_print("Update other keyboards to: {:02.2f}% ({})".format(new_brightness * 100 / 255, new_brightness))
+                for other_dev in devs:
+                    debug_print("Updating {}".format(other_dev['product_string']))
+                    if dev['path'] != other_dev['path']:
+                            set_brightness(other_dev, new_brightness)
+                            set_rgb_brightness(other_dev, new_brightness)
+                            #time.sleep(1)
+                            # Avoid it triggering an update in the other direction
+                            prev_brightness[other_dev['path']] = {
+                                'brightness': get_backlight(other_dev, BACKLIGHT_VALUE_BRIGHTNESS),
+                                'rgb_brightness': get_rgb_u8(other_dev, RGB_MATRIX_VALUE_BRIGHTNESS),
+                            }
+                debug_print()
+        # Avoid high CPU usage
+        time.sleep(1)
 
 
 # Example return value
