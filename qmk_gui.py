@@ -210,6 +210,7 @@ def main(devices):
     selected_devices = []
 
     window.start_thread(lambda: backlight_watcher(window, devices), (THREAD_KEY, THREAD_EXITING))
+    window.start_thread(lambda: periodic_event(window), (THREAD_KEY, THREAD_EXITING))
 
     while True:
         numlock_on = get_numlock_state()
@@ -221,14 +222,19 @@ def main(devices):
             window['-NUMLOCK-STATE-'].update("On (Numbers)" if numlock_on else "Off (Arrows)")
 
         event, values = window.read()
-        #print('Event', event)
-        #print('Values', values)
+        # print('Event', event)
+        # print('Values', values)
+
+        for dev in devices:
+            debug_print("Dev {} is {}".format(dev['product_string'], dev.get('disconnected')))
+            if 'disconnected' in dev:
+                window['-CHECKBOX-{}-'.format(dev['path'])].update(False, disabled=True)
 
         selected_devices = [
             dev for dev in devices if
             values and values['-CHECKBOX-{}-'.format(dev['path'])]
         ]
-            # print("Selected {} devices".format(len(selected_devices)))
+        # print("Selected {} devices".format(len(selected_devices)))
 
         # Updating firmware
         if event == "-FLASH-" and len(selected_devices) != 1:
@@ -313,6 +319,12 @@ def resource_path():
 
 THREAD_KEY = '-THREAD-'
 THREAD_EXITING = '-THREAD EXITING-'
+def periodic_event(window):
+    while True:
+        window.write_event_value('-PERIODIC-EVENT-', None)
+        time.sleep(1)
+
+
 def backlight_watcher(window, devs):
     prev_brightness = {}
     while True:
@@ -463,8 +475,12 @@ def send_message(dev, message_id, msg, out_len):
 
         out_data = h.read(out_len+3)
         return out_data
-    except IOError as ex:
-        print(ex)
+    except (IOError, OSError) as ex:
+        dev['disconnected'] = True
+        debug_print("Error: ", ex)
+        # Doesn't actually exit the process, pysimplegui catches it
+        # But it avoids the return value being used
+        # TODO: Get rid of this ugly hack and properly make the caller handle the failure
         sys.exit(1)
 
 def set_keyboard_value(dev, value, number):
@@ -545,7 +561,7 @@ def flash_firmware(dev, fw_path):
     # First jump to bootloader
     drives = uf2conv.list_drives()
     if not drives:
-        print("jump to bootloader")
+        print("Jump to bootloader")
         bootloader_jump(dev)
 
     timeout = 10  # 5s
