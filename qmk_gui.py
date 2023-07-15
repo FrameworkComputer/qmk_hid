@@ -174,17 +174,12 @@ def main(devices):
         [sg.Button("Bootloader", k='-BOOTLOADER-')],
         [sg.HorizontalSeparator()],
     ] + bundled_update + [
-        [sg.Text("Single-Zone Brightness")],
+        [sg.Text("Backlight Brightness")],
         # TODO: Get default from device
         [sg.Slider((0, 255), orientation='h', default_value=120,
                    k='-BRIGHTNESS-', enable_events=True)],
         #[sg.Button("Enable Breathing", k='-ENABLE-BREATHING-')],
         #[sg.Button("Disable Breathing", k='-DISABLE-BREATHING-')],
-
-        [sg.Text("RGB Brightness")],
-        # TODO: Get default from device
-        [sg.Slider((0, 255), orientation='h', default_value=120,
-                   k='-RGB-BRIGHTNESS-', enable_events=True)],
 
         [sg.Text("RGB Color")],
         [
@@ -266,9 +261,7 @@ def main(devices):
 
             if event == '-BRIGHTNESS-':
                 brightness(dev, int(values['-BRIGHTNESS-']))
-
-            if event == '-RGB-BRIGHTNESS-':
-                rgb_brightness(dev, int(values['-RGB-BRIGHTNESS-']))
+                rgb_brightness(dev, int(values['-BRIGHTNESS-']))
 
             if event == '-RGB-EFFECT-':
                 effect = RGB_EFFECTS.index(values['-RGB-EFFECT-'])
