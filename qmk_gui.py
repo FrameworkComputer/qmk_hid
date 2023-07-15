@@ -13,12 +13,8 @@ if os.name == 'nt':
 import uf2conv
 
 # TODO:
-# - Clear EEPROM
-# - Save settings
 # - Get current values
 #   - Set sliders to current values
-# - Show connected devices
-#   - Get firmware version
 
 PROGRAM_VERSION = "0.1.8"
 FWK_VID = 0x32AC
@@ -260,8 +256,8 @@ def main(devices):
                 restart_hint()
 
             if event == '-BRIGHTNESS-':
-                brightness(dev, int(values['-BRIGHTNESS-']))
-                rgb_brightness(dev, int(values['-BRIGHTNESS-']))
+                set_brightness(dev, int(values['-BRIGHTNESS-']))
+                set_rgb_brightness(dev, int(values['-BRIGHTNESS-']))
 
             if event == '-RGB-EFFECT-':
                 effect = RGB_EFFECTS.index(values['-RGB-EFFECT-'])
@@ -278,7 +274,7 @@ def main(devices):
                 set_rgb_color(dev, None, 0)
             if event == '-OFF-':
                 window['-RGB-BRIGHTNESS-'].Update(0)
-                rgb_brightness(dev, 0)
+                set_rgb_brightness(dev, 0)
 
             if event == '-SAVE-':
                 save(dev)
@@ -413,7 +409,7 @@ def send_message(dev, message_id, msg, out_len):
         if out_len == 0:
             return None
 
-        out_data = h.read(out_len)
+        out_data = h.read(out_len+3)
         return out_data
     except IOError as ex:
         print(ex)
@@ -427,17 +423,25 @@ def set_rgb_u8(dev, value, value_data):
     msg = [CHANNEL_RGB_MATRIX, value, value_data]
     send_message(dev, CUSTOM_SET_VALUE, msg, 0)
 
+# Returns brightness level: x/255
 def get_rgb_u8(dev, value):
     msg = [CHANNEL_RGB_MATRIX, value]
-    output = send_message(dev, CUSTOM_SET_VALUE, msg, 3)
-    print("output", output)
-    return output[2]
+    output = send_message(dev, CUSTOM_GET_VALUE, msg, 1)
+    if output[0] == 255: # Not RGB
+        return None
+    return output[3]
 
-def get_backlight(dev, value, value_data):
+# Returns (hue, saturation)
+def get_rgb_color(dev):
+    msg = [CHANNEL_RGB_MATRIX, RGB_MATRIX_VALUE_COLOR]
+    output = send_message(dev, CUSTOM_GET_VALUE, msg, 2)
+    return (output[3], output[4])
+
+# Returns brightness level: x/255
+def get_backlight(dev, value):
     msg = [CHANNEL_BACKLIGHT, value]
-    output = send_message(dev, CUSTOM_SET_VALUE, msg, 3)
-    print(output[2])
-    return output[2]
+    output = send_message(dev, CUSTOM_GET_VALUE, msg, 1)
+    return output[3]
 
 def set_backlight(dev, value, value_data):
     msg = [CHANNEL_BACKLIGHT, value, value_data]
@@ -463,22 +467,18 @@ def bootloader_jump(dev):
     send_message(dev, BOOTLOADER_JUMP, None, 0)
 
 
-def rgb_brightness(dev, brightness):
+def set_rgb_brightness(dev, brightness):
     set_rgb_u8(dev, RGB_MATRIX_VALUE_BRIGHTNESS, brightness)
-    #brightness = get_rgb_u8(dev, RGB_MATRIX_VALUE_BRIGHTNESS)
-    #print(f"New Brightness: {brightness}")
 
 
-def brightness(dev, brightness):
+def set_brightness(dev, brightness):
     set_backlight(dev, BACKLIGHT_VALUE_BRIGHTNESS, brightness)
-    #brightness = get_backlight(dev, BACKLIGHT_VALUE_BRIGHTNESS)
-    #print(f"New Brightness: {brightness}")
 
 
 def set_rgb_color(dev, hue, saturation):
+    (cur_hue, cur_sat) = get_rgb_color(dev)
     if not hue:
-        # TODO: Just choose current hue
-        hue = 0
+        hue = cur_hue
     msg = [CHANNEL_RGB_MATRIX, RGB_MATRIX_VALUE_COLOR, hue, saturation]
     send_message(dev, CUSTOM_SET_VALUE, msg, 0)
 
