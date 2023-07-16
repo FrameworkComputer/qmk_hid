@@ -384,12 +384,12 @@ def find_devs(show, verbose):
                 sn = device_dict['serial_number']
                 print(f"Serial No:    {sn}")
 
-        if verbose:
-            pid = device_dict["product_id"]
-            print(f"VID/PID:      {vid:02X}:{pid:02X}")
-            print(f"Interface:    {interface}")
-            # TODO: print Usage Page
-            print("")
+            if verbose:
+                pid = device_dict["product_id"]
+                print(f"VID/PID:      {vid:02X}:{pid:02X}")
+                print(f"Interface:    {interface}")
+                # TODO: print Usage Page
+                print("")
 
         devices.append(device_dict)
 
