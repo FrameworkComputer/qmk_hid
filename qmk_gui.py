@@ -214,7 +214,8 @@ def main(devices):
 
     selected_devices = []
 
-    window.start_thread(lambda: backlight_watcher(window, devices), (THREAD_KEY, THREAD_EXITING))
+    # Optionally sync brightness between keyboards
+    # window.start_thread(lambda: backlight_watcher(window, devices), (THREAD_KEY, THREAD_EXITING))
     window.start_thread(lambda: periodic_event(window), (THREAD_KEY, THREAD_EXITING))
 
     while True:
