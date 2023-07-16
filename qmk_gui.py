@@ -124,6 +124,7 @@ def format_fw_ver(fw_ver):
 def get_numlock_state():
     if os.name == 'nt':
         return GetKeyState(VK_NUMLOCK)
+    # Ignore tool not found, just return None
     with contextlib.suppress(FileNotFoundError):
         output = subprocess.run(['numlockx', 'status'], stdout=subprocess.PIPE).stdout
         if b'on' in output:
