@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+
+# SPDX-License-Identifier: MIT
+# Copyright (c) Microsoft Corporation and others
+# Taken from: https://github.com/microsoft/uf2/blob/master/utils/uf2conv.py
+# And modified, some changes already upstreamed
+
 # yapf: disable
 import sys
 import struct
