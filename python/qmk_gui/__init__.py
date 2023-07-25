@@ -137,7 +137,10 @@ def get_numlock_state():
             pass
 
 
-def main(devices):
+def main():
+    devices = find_devs(show=False, verbose=False)
+    print("Found {} devices".format(len(devices)))
+
     device_checkboxes = []
     for dev in devices:
         device_info = "{}\nSerial No: {}\nFW Version: {}\n".format(
@@ -598,7 +601,4 @@ def flash_firmware(dev, fw_path):
 
 
 if __name__ == "__main__":
-    devices = find_devs(show=False, verbose=False)
-    print("Found {} devices".format(len(devices)))
-
-    main(devices)
+    main()
