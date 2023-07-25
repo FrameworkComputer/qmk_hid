@@ -211,6 +211,24 @@ cargo build
 ./target/debug/qmk_hid
 ```
 
+### With Nix Flakes
+
+Pre-requisites: Nix with flakes and nix command enabled.
+
+```sh
+# Build
+nix build
+
+# Build and run command
+nix run
+
+# Build and enter shell with command
+nix shell
+
+# Enter shell with cargo and dependencies
+nix develop
+```
+
 ## Running on Linux
 
 To avoid needing root privileges to access the keyboard please follow the

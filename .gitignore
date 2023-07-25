@@ -12,3 +12,6 @@ dist/
 
 # Hatch
 _version.py
+
+# Nix
+result
