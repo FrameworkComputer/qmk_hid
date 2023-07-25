@@ -193,3 +193,21 @@ Pre-requisites: Rust, libudev
 cargo build
 ls -l target/debug/qmk_hid
 ```
+
+###### With Nix Flakes
+
+Pre-requisites: Nix with flakes and nix command enabled.
+
+```
+# Build
+nix build
+
+# Build and run command
+nix run
+
+# Build and enter shell with command
+nix shell
+
+# Enter shell with cargo and dependencies
+nix develop
+```
