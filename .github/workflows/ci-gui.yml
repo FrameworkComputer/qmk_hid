@@ -1,4 +1,4 @@
-name: CI
+name: qmk_gui Builds
 on:
   push:
 
@@ -13,6 +13,12 @@ jobs:
       run: |
         python3 -m pip install build
         python3 -m build
+
+    - name: Upload Linux GUI python package
+      uses: actions/upload-artifact@v3
+      with:
+        name: qmk_gui_linux
+        path: dist/qmk_gui-*.whl
 
   build-gui-exe:
     name: Build Windows GUI
