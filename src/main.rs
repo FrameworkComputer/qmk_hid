@@ -25,6 +25,9 @@ struct FactorySubcommand {
     /// Light up single LED
     #[arg(long)]
     led: Option<u8>,
+
+    #[arg(long)]
+    bios_mode: Option<bool>,
 }
 
 /// QMK
@@ -170,6 +173,9 @@ fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
 
     match &args.command {
         Some(Commands::Factory(args)) => {
+            if let Some(bios_mode) = args.bios_mode {
+                send_factory_command(&device, 0x05, bios_mode as u8).unwrap();
+            }
             if let Some(led) = args.led {
                 println!("Lighting up LED: {led}");
                 send_factory_command(&device, 0x02, led).unwrap();
