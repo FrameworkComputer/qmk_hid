@@ -214,7 +214,7 @@ dependencies = [
 
 [[package]]
 name = "qmk_hid"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "clap",
  "hidapi",

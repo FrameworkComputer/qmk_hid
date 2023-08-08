@@ -16,7 +16,7 @@ import uf2conv
 # - Get current values
 #   - Set sliders to current values
 
-PROGRAM_VERSION = "0.1.8"
+PROGRAM_VERSION = "0.1.9"
 FWK_VID = 0x32AC
 
 DEBUG_PRINT = False
@@ -201,6 +201,10 @@ def main(devices):
         [sg.Button("Send Numlock Toggle", k='-NUMLOCK-TOGGLE-', disabled=True)],
 
         [sg.HorizontalSeparator()],
+        [sg.Text("BIOS Mode")],
+        [sg.Button("Enable", k='-BIOS-MODE-ENABLE-'), sg.Button("Disable", k='-BIOS-MODE-DISABLE-')],
+
+        [sg.HorizontalSeparator()],
         [sg.Text("Save Settings")],
         [sg.Button("Save", k='-SAVE-'), sg.Button("Clear EEPROM", k='-CLEAR-EEPROM-')],
         [sg.Text(f"Program Version: {PROGRAM_VERSION}")],
@@ -274,6 +278,11 @@ def main(devices):
                 bootloader_jump(dev)
                 window['-CHECKBOX-{}-'.format(dev['path'])].update(False, disabled=True)
                 restart_hint()
+
+            if event == "-BIOS-MODE-ENABLE-":
+                bios_mode(dev, True)
+            if event == "-BIOS-MODE-DISABLE-":
+                bios_mode(dev, False)
 
             if event == '-BRIGHTNESS-':
                 set_brightness(dev, int(values['-BRIGHTNESS-']))
@@ -539,6 +548,11 @@ def eeprom_reset(dev):
 
 def bootloader_jump(dev):
     send_message(dev, BOOTLOADER_JUMP, None, 0)
+
+
+def bios_mode(dev, enable):
+    param = 0x01 if enable else 0x00
+    send_message(dev, BOOTLOADER_JUMP, [0x05, param], 0)
 
 
 def set_rgb_brightness(dev, brightness):

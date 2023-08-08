@@ -117,6 +117,18 @@ jobs:
     - name: Download releases to bundle
       run: |
         mkdir releases
+        mkdir releases\0.2.2
+        Invoke-WebRequest -Uri https://github.com/FrameworkComputer/qmk_firmware/releases/download/v0.2.2/framework_ansi_default_v0.2.2.uf2 -OutFile releases\0.2.2\framework_ansi_default.uf2
+        Invoke-WebRequest -Uri https://github.com/FrameworkComputer/qmk_firmware/releases/download/v0.2.2/framework_iso_default_v0.2.2.uf2 -OutFile releases\0.2.2\framework_iso_default.uf2
+        Invoke-WebRequest -Uri https://github.com/FrameworkComputer/qmk_firmware/releases/download/v0.2.2/framework_jis_default_v0.2.2.uf2 -OutFile releases\0.2.2\framework_jis_default.uf2
+        Invoke-WebRequest -Uri https://github.com/FrameworkComputer/qmk_firmware/releases/download/v0.2.2/framework_numpad_default_v0.2.2.uf2 -OutFile releases\0.2.2\framework_numpad_default.uf2
+        Invoke-WebRequest -Uri https://github.com/FrameworkComputer/qmk_firmware/releases/download/v0.2.2/framework_macropad_default_v0.2.2.uf2 -OutFile releases\0.2.2\framework_macropad_default.uf2
+        mkdir releases\0.2.1
+        Invoke-WebRequest -Uri https://github.com/FrameworkComputer/qmk_firmware/releases/download/v0.2.1/framework_ansi_default_v0.2.1.uf2 -OutFile releases\0.2.1\framework_ansi_default.uf2
+        Invoke-WebRequest -Uri https://github.com/FrameworkComputer/qmk_firmware/releases/download/v0.2.1/framework_iso_default_v0.2.1.uf2 -OutFile releases\0.2.1\framework_iso_default.uf2
+        Invoke-WebRequest -Uri https://github.com/FrameworkComputer/qmk_firmware/releases/download/v0.2.1/framework_jis_default_v0.2.1.uf2 -OutFile releases\0.2.1\framework_jis_default.uf2
+        Invoke-WebRequest -Uri https://github.com/FrameworkComputer/qmk_firmware/releases/download/v0.2.1/framework_numpad_default_v0.2.1.uf2 -OutFile releases\0.2.1\framework_numpad_default.uf2
+        Invoke-WebRequest -Uri https://github.com/FrameworkComputer/qmk_firmware/releases/download/v0.2.1/framework_macropad_default_v0.2.1.uf2 -OutFile releases\0.2.1\framework_macropad_default.uf2
         mkdir releases\0.2.0
         Invoke-WebRequest -Uri https://github.com/FrameworkComputer/qmk_firmware/releases/download/v0.2.0/framework_ansi_default_v0.2.0.uf2 -OutFile releases\0.2.0\framework_ansi_default.uf2
         Invoke-WebRequest -Uri https://github.com/FrameworkComputer/qmk_firmware/releases/download/v0.2.0/framework_iso_default_v0.2.0.uf2 -OutFile releases\0.2.0\framework_iso_default.uf2
