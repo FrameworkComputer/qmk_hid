@@ -16,7 +16,7 @@ import uf2conv
 # - Get current values
 #   - Set sliders to current values
 
-PROGRAM_VERSION = "0.1.8"
+PROGRAM_VERSION = "0.1.9"
 FWK_VID = 0x32AC
 
 DEBUG_PRINT = False
