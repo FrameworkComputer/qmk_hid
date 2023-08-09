@@ -249,9 +249,6 @@ def main(devices):
         # print("Selected {} devices".format(len(selected_devices)))
 
         # Updating firmware
-        if event == "-FLASH-" and len(selected_devices) != 1:
-            sg.Popup('To flash select exactly 1 device.')
-            continue
         if event == "-VERSION-":
             # After selecting a version, we can list the types of firmware available for this version
             types = list(releases[values['-VERSION-']])
@@ -260,9 +257,12 @@ def main(devices):
             # Once the user has selected a type, the exact firmware file is known and can be flashed
             window['-FLASH-'].update(disabled=False)
         if event == "-FLASH-":
+            if len(selected_devices) != 1:
+                sg.Popup('To flash select exactly 1 device.')
+                continue
+            dev = selected_devices[0]
             ver = values['-VERSION-']
             t = values['-TYPE-']
-            # print("Flashing", releases[ver][t])
             flash_firmware(dev, releases[ver][t])
             restart_hint()
             window['-CHECKBOX-{}-'.format(dev['path'])].update(False, disabled=True)
