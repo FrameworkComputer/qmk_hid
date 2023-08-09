@@ -201,10 +201,17 @@ def main(devices):
         [sg.Button("Send Numlock Toggle", k='-NUMLOCK-TOGGLE-', disabled=True)],
 
         [sg.HorizontalSeparator()],
-        [sg.Text("BIOS Mode")],
-        [sg.Button("Enable", k='-BIOS-MODE-ENABLE-'), sg.Button("Disable", k='-BIOS-MODE-DISABLE-')],
-        [sg.Text("Factory Mode")],
-        [sg.Button("Enable", k='-FACTORY-MODE-ENABLE-'), sg.Button("Disable", k='-FACTORY-MODE-DISABLE-')],
+        [
+            sg.Column([
+                [sg.Text("BIOS Mode")],
+                [sg.Button("Enable", k='-BIOS-MODE-ENABLE-'), sg.Button("Disable", k='-BIOS-MODE-DISABLE-')],
+            ]),
+            sg.VSeperator(),
+            sg.Column([
+                [sg.Text("Factory Mode")],
+                [sg.Button("Enable", k='-FACTORY-MODE-ENABLE-'), sg.Button("Disable", k='-FACTORY-MODE-DISABLE-')],
+            ])
+        ],
 
         [sg.HorizontalSeparator()],
         [sg.Text("Save Settings")],
