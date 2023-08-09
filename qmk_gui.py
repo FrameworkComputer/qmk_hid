@@ -16,7 +16,7 @@ import uf2conv
 # - Get current values
 #   - Set sliders to current values
 
-PROGRAM_VERSION = "0.1.9"
+PROGRAM_VERSION = "0.1.10"
 FWK_VID = 0x32AC
 
 DEBUG_PRINT = False
@@ -201,10 +201,17 @@ def main(devices):
         [sg.Button("Send Numlock Toggle", k='-NUMLOCK-TOGGLE-', disabled=True)],
 
         [sg.HorizontalSeparator()],
-        [sg.Text("BIOS Mode")],
-        [sg.Button("Enable", k='-BIOS-MODE-ENABLE-'), sg.Button("Disable", k='-BIOS-MODE-DISABLE-')],
-        [sg.Text("Factory Mode")],
-        [sg.Button("Enable", k='-FACTORY-MODE-ENABLE-'), sg.Button("Disable", k='-FACTORY-MODE-DISABLE-')],
+        [
+            sg.Column([
+                [sg.Text("BIOS Mode")],
+                [sg.Button("Enable", k='-BIOS-MODE-ENABLE-'), sg.Button("Disable", k='-BIOS-MODE-DISABLE-')],
+            ]),
+            sg.VSeperator(),
+            sg.Column([
+                [sg.Text("Factory Mode")],
+                [sg.Button("Enable", k='-FACTORY-MODE-ENABLE-'), sg.Button("Disable", k='-FACTORY-MODE-DISABLE-')],
+            ])
+        ],
 
         [sg.HorizontalSeparator()],
         [sg.Text("Save Settings")],
@@ -249,9 +256,6 @@ def main(devices):
         # print("Selected {} devices".format(len(selected_devices)))
 
         # Updating firmware
-        if event == "-FLASH-" and len(selected_devices) != 1:
-            sg.Popup('To flash select exactly 1 device.')
-            continue
         if event == "-VERSION-":
             # After selecting a version, we can list the types of firmware available for this version
             types = list(releases[values['-VERSION-']])
@@ -260,9 +264,12 @@ def main(devices):
             # Once the user has selected a type, the exact firmware file is known and can be flashed
             window['-FLASH-'].update(disabled=False)
         if event == "-FLASH-":
+            if len(selected_devices) != 1:
+                sg.Popup('To flash select exactly 1 device.')
+                continue
+            dev = selected_devices[0]
             ver = values['-VERSION-']
             t = values['-TYPE-']
-            # print("Flashing", releases[ver][t])
             flash_firmware(dev, releases[ver][t])
             restart_hint()
             window['-CHECKBOX-{}-'.format(dev['path'])].update(False, disabled=True)
@@ -451,6 +458,11 @@ def find_devs(show, verbose):
         if os.name == 'nt' and device_dict['usage_page'] not in [RAW_USAGE_PAGE, CONSOLE_USAGE_PAGE]:
             if verbose:
                 print("Usage Page not matching")
+            continue
+        # Lots of false positives, so at least skip Framework false positives
+        if vid == FWK_VID and pid not in [0x12, 0x13, 0x14, 0x18, 0x19]:
+            if verbose:
+                print("False positive, device is not allowed")
             continue
 
         fw_ver = device_dict["release_number"]
