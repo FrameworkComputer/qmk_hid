@@ -6,3 +6,6 @@ venv/
 qmk_gui.spec
 build/
 dist/
+
+# Nix
+result
