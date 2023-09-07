@@ -171,11 +171,12 @@ def main(devices):
         [sg.Text("Detected Devices")],
     ] + device_checkboxes + [
         [sg.HorizontalSeparator()],
-
-        [sg.Text("Bootloader")],
-        [sg.Button("Bootloader", k='-BOOTLOADER-')],
-        [sg.HorizontalSeparator()],
     ] + bundled_update + [
+        [sg.Text("Bootloader & Debug")],
+        [sg.Button("Bootloader", k='-BOOTLOADER-')],
+        [sg.Button("Open Debug Console", k='-DEBUG-CONSOLE-')],
+        [sg.HorizontalSeparator()],
+
         [sg.Text("Backlight Brightness")],
         # TODO: Get default from device
         [sg.Slider((0, 255), orientation='h', default_value=120,
@@ -214,8 +215,8 @@ def main(devices):
         ],
 
         [sg.HorizontalSeparator()],
-        [sg.Text("Save Settings")],
-        [sg.Button("Save", k='-SAVE-'), sg.Button("Clear EEPROM", k='-CLEAR-EEPROM-')],
+        [sg.Text("Settings (And key layout)")],
+        [sg.Button("Save", k='-SAVE-'), sg.Button("Erase Settings", k='-CLEAR-EEPROM-')],
         [sg.Text(f"Program Version: {PROGRAM_VERSION}")],
     ]
 
@@ -263,9 +264,16 @@ def main(devices):
         if event == "-TYPE-":
             # Once the user has selected a type, the exact firmware file is known and can be flashed
             window['-FLASH-'].update(disabled=False)
+        if event == "-DEBUG-CONSOLE-":
+            if len(selected_devices) != 1:
+                sg.Popup('To check debug console, select exactly 1 device.')
+                continue
+            while True:
+               sg.Print("Hello")
+               time.sleep(1)
         if event == "-FLASH-":
             if len(selected_devices) != 1:
-                sg.Popup('To flash select exactly 1 device.')
+                sg.Popup('To flash, select exactly 1 device.')
                 continue
             dev = selected_devices[0]
             ver = values['-VERSION-']
