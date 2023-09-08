@@ -34,6 +34,12 @@ struct FactorySubcommand {
 
     #[arg(long)]
     factory_mode: Option<bool>,
+
+    #[arg(long)]
+    lock: Option<bool>,
+
+    #[arg(long)]
+    write: Option<bool>,
 }
 
 /// QMK
@@ -187,6 +193,14 @@ fn use_device(args: &ClapCli, api: &HidApi, dev_info: &DeviceInfo) {
             }
             if let Some(factory_mode) = args.factory_mode {
                 send_factory_command(&device, 0x06, factory_mode as u8).unwrap();
+            }
+            if let Some(lock) = args.lock {
+                let command = if lock { 0x07 } else { 0x08 };
+                send_factory_command(&device, command, 0).unwrap();
+            }
+            if let Some(write) = args.write {
+                let command = if write { 0x0A } else { 0x09 };
+                send_factory_command(&device, command, 0).unwrap();
             }
             if let Some(led) = args.led {
                 println!("Lighting up LED: {led}");

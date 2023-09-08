@@ -80,6 +80,7 @@ pub fn qmk_console(dev: &HidDevice) {
             }
             Err(err) => {
                 println!("Read err: {err:?}");
+                break;
             }
         }
     }
