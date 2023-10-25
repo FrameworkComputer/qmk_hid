@@ -187,9 +187,23 @@ qmk_hid via --rgb-effect 38
 
 ## Building from source
 
-Pre-requisites: Rust, libudev
+Pre-requisites:
+
+- [Rust](https://rustup.rs/)
+- libudev (`libudev-dev` on Ubuntu, `systemd-devel` on Fedora)
 
 ```sh
+# Directly run
+cargo run
+
+# Build and run executable (on Linux)
 cargo build
-ls -l target/debug/qmk_hid
+./target/debug/qmk_hid
 ```
+
+## Running on Linux
+
+To avoid needing root privileges to access the keyboard please follow the
+official [QMK guide](https://docs.qmk.fm/#/faq_build?id=linux-udev-rules) for
+how to install udev rules. After doing that, you'll be able to interact with
+the keyboards as a regular user.
