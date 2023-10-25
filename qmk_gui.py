@@ -210,7 +210,17 @@ def main(devices):
             sg.Column([
                 [sg.Text("Factory Mode")],
                 [sg.Button("Enable", k='-FACTORY-MODE-ENABLE-'), sg.Button("Disable", k='-FACTORY-MODE-DISABLE-')],
-            ])
+            ]),
+            sg.VSeperator(),
+            sg.Column([
+                [sg.Text("Lock Flash")],
+                [sg.Button("Lock", k='-LOCK-FLASH-'), sg.Button("Unlock", k='-UNLOCK-FLASH-')],
+            ]),
+            sg.VSeperator(),
+            sg.Column([
+                [sg.Text("Read/write flash")],
+                [sg.Button("Read", k='-READ-FLASH-'), sg.Button("Write", k='-WRITE-FLASH-')],
+            ]),
         ],
 
         [sg.HorizontalSeparator()],
@@ -297,6 +307,15 @@ def main(devices):
                 factory_mode(dev, True)
             if event == "-FACTORY-MODE-DISABLE-":
                 factory_mode(dev, False)
+
+            if event == "-LOCK-FLASH-":
+                lock_flash(dev, True)
+            if event == "-UNLOCK-FLASH-":
+                lock_flash(dev, False)
+            if event == "-WRITE-FLASH-":
+                write_flash(dev, True)
+            if event == "-READ-FLASH-":
+                write_flash(dev, False)
 
             if event == '-BRIGHTNESS-':
                 set_brightness(dev, int(values['-BRIGHTNESS-']))
@@ -577,6 +596,17 @@ def bios_mode(dev, enable):
 def factory_mode(dev, enable):
     param = 0x01 if enable else 0x00
     send_message(dev, BOOTLOADER_JUMP, [0x06, param], 0)
+
+def lock_flash(dev, enable):
+    cmd = 0x07 if enable else 0x08
+    param = 0x00
+    send_message(dev, BOOTLOADER_JUMP, [cmd, param], 0)
+
+# Read/write flash
+def write_flash(dev, enable):
+    cmd = 0x0A if enable else 0x09
+    param = 0x00
+    send_message(dev, BOOTLOADER_JUMP, [cmd, param], 0)
 
 
 def set_rgb_brightness(dev, brightness):
