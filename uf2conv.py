@@ -232,8 +232,10 @@ def to_str(b):
 def get_drives():
     drives = []
     if sys.platform == "win32":
+        # TODO: Could also check "VolumeName" == "RPI-RP2"
+        # But it should be okay because we check for the INFO file that no other drive would have
         r = subprocess.check_output(["wmic", "PATH", "Win32_LogicalDisk",
-                                     "get", "DeviceID,", "VolumeName,",
+                                     "get", "DeviceID,",
                                      "FileSystem,", "DriveType"])
         for line in to_str(r).split('\n'):
             words = re.split('\s+', line)
