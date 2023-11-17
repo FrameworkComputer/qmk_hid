@@ -1,8 +1,13 @@
 target/
 
+# Python
+__pycache__
 venv/
 
 # pyinstaller
 qmk_gui.spec
 build/
 dist/
+
+# Hatch
+_version.py

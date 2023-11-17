@@ -10,8 +10,8 @@ Tested to work on Windows and Linux, without any drivers or admin privileges.
 ###### GUI
 
 There is also an easy to use GUI tool that does not require commandline interaction.
-On Linux install Python requirements via `python3 -m install -r requirements.txt` and run `qmk_gui.py`.
-On Windows download the `qmk_gui.exe` and run it.
+
+See [GUI README](python/README.md)
 
 ## Running
 
