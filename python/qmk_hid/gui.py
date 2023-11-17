@@ -592,7 +592,7 @@ def set_brightness(dev, brightness):
 
 def set_rgb_color(dev, hue, saturation):
     (cur_hue, cur_sat) = get_rgb_color(dev)
-    if not hue:
+    if hue is None:
         hue = cur_hue
     msg = [CHANNEL_RGB_MATRIX, RGB_MATRIX_VALUE_COLOR, hue, saturation]
     send_message(dev, CUSTOM_SET_VALUE, msg, 0)
