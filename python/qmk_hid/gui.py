@@ -319,7 +319,7 @@ def main():
             if event == '-WHITE-':
                 set_rgb_color(dev, None, 0)
             if event == '-OFF-':
-                window['-RGB-BRIGHTNESS-'].Update(0)
+                window['-BRIGHTNESS-'].Update(0)
                 set_rgb_brightness(dev, 0)
 
             if event == '-SAVE-':
