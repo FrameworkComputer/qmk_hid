@@ -137,7 +137,10 @@ def get_numlock_state():
             pass
 
 
-def main(devices):
+def main():
+    devices = find_devs(show=False, verbose=False)
+    # print("Found {} devices".format(len(devices)))
+
     device_checkboxes = []
     for dev in devices:
         device_info = "{}\nSerial No: {}\nFW Version: {}\n".format(
@@ -316,7 +319,7 @@ def main(devices):
             if event == '-WHITE-':
                 set_rgb_color(dev, None, 0)
             if event == '-OFF-':
-                window['-RGB-BRIGHTNESS-'].Update(0)
+                window['-BRIGHTNESS-'].Update(0)
                 set_rgb_brightness(dev, 0)
 
             if event == '-SAVE-':
@@ -589,7 +592,7 @@ def set_brightness(dev, brightness):
 
 def set_rgb_color(dev, hue, saturation):
     (cur_hue, cur_sat) = get_rgb_color(dev)
-    if not hue:
+    if hue is None:
         hue = cur_hue
     msg = [CHANNEL_RGB_MATRIX, RGB_MATRIX_VALUE_COLOR, hue, saturation]
     send_message(dev, CUSTOM_SET_VALUE, msg, 0)
@@ -636,7 +639,4 @@ def flash_firmware(dev, fw_path):
 
 
 if __name__ == "__main__":
-    devices = find_devs(show=False, verbose=False)
-    print("Found {} devices".format(len(devices)))
-
-    main(devices)
+    main()
