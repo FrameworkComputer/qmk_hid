@@ -9,6 +9,7 @@ import hid
 if os.name == 'nt':
     from win32api import GetKeyState, keybd_event
     from win32con import VK_NUMLOCK, VK_CAPITAL
+    import winreg
 
 import uf2conv
 
@@ -16,7 +17,7 @@ import uf2conv
 # - Get current values
 #   - Set sliders to current values
 
-PROGRAM_VERSION = "0.1.11"
+PROGRAM_VERSION = "0.1.12"
 FWK_VID = 0x32AC
 
 DEBUG_PRINT = False
@@ -217,9 +218,20 @@ def main():
         ],
 
         [sg.HorizontalSeparator()],
-        [sg.Text("Save Settings")],
-        [sg.Button("Save", k='-SAVE-'), sg.Button("Clear EEPROM", k='-CLEAR-EEPROM-')],
-        [sg.Text(f"Program Version: {PROGRAM_VERSION}")],
+        [
+            sg.Column([
+                [sg.Text("Save/Erase Controls")],
+                [sg.Button("Save", k='-SAVE-'), sg.Button("Clear EEPROM", k='-CLEAR-EEPROM-')],
+                [sg.Text(f"Program Version: {PROGRAM_VERSION}")],
+            ]),
+            sg.VSeperator(),
+            sg.Column([
+                [sg.Text("Registry Controls")],
+                [sg.Button("Enable Selective Suspend", k='-ENABLE-SELECTIVESUSPEND-')],
+                [sg.Button("Disable Selective Suspend", k='-DISABLE-SELECTIVESUSPEND-')],
+                #[sg.Button("Reset Registry", k='-RESET-REGISTRY-')],
+            ])
+        ],
     ]
 
     icon_path = None
@@ -285,11 +297,14 @@ def main():
                 out = subprocess.check_output(['numlockx', 'toggle'])
 
         # Run commands on all selected devices
+        hint_shown = False
         for dev in selected_devices:
             if event == "-BOOTLOADER-":
                 bootloader_jump(dev)
                 window['-CHECKBOX-{}-'.format(dev['path'])].update(False, disabled=True)
-                restart_hint()
+                if not hint_shown:
+                    restart_hint()
+                    hint_shown = True
 
             if event == "-BIOS-MODE-ENABLE-":
                 bios_mode(dev, True)
@@ -327,6 +342,21 @@ def main():
 
             if event == '-CLEAR-EEPROM-':
                 eeprom_reset(dev)
+
+            if event == '-RESET-REGISTRY-':
+                # TODO: Implement completely deleting the relevant registry entries
+                pass
+            if event == '-ENABLE-SELECTIVESUSPEND-':
+                selective_suspend_registry(dev['product_id'], False, set=True)
+                if not hint_shown:
+                    replug_hint()
+                    hint_shown = True
+
+            if event == '-DISABLE-SELECTIVESUSPEND-':
+                selective_suspend_registry(dev['product_id'], False, set=False)
+                if not hint_shown:
+                    replug_hint()
+                    hint_shown = True
 
         if event == sg.WIN_CLOSED:
             break
@@ -602,6 +632,10 @@ def restart_hint():
     sg.Popup('After updating a device, \nrestart the application\nto reload the connections.')
 
 
+def replug_hint():
+    sg.Popup('After changing selective suspend setting, make sure to unplug and re-plug the device to apply the settings.')
+
+
 def flash_firmware(dev, fw_path):
     print(f"Flashing {fw_path}")
 
@@ -637,6 +671,69 @@ def flash_firmware(dev, fw_path):
 
     print("Flashing finished")
 
+
+def selective_suspend_registry(pid, verbose, set=None):
+    # The set of keys we care about (under HKEY_LOCAL_MACHINE) are
+    # SYSTEM\CurrentControlSet\Enum\USB\VID_32AC&PID_0013\Device Parameters\SelectiveSuspendEnabled
+    # SYSTEM\CurrentControlSet\Enum\USB\VID_32AC&PID_0013&MI_00\Device Parameters\SelectiveSuspendEnabled
+    # SYSTEM\CurrentControlSet\Enum\USB\VID_32AC&PID_0013&MI_01\Device Parameters\SelectiveSuspendEnabled
+    # SYSTEM\CurrentControlSet\Enum\USB\VID_32AC&PID_0013&MI_02\Device Parameters\SelectiveSuspendEnabled
+    # SYSTEM\CurrentControlSet\Enum\USB\VID_32AC&PID_0013&MI_03\Device Parameters\SelectiveSuspendEnabled
+    # Where 0013 is the USB PID
+    #
+    # Additionally
+    # SYSTEM\CurrentControlSet\Control\usbflags\32AC00130026\osvc
+    # Where 32AC is the VID, 0013 is the PID, 0026 is the bcdDevice (version)
+    long_pid = "{:0>4X}".format(pid)
+    aReg = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
+
+    if set is not None:
+        if set:
+            print("Setting SelectiveSuspendEnabled to ENABLE")
+        else:
+            print("Setting SelectiveSuspendEnabled to DISABLE")
+
+    for mi in ['', '&MI_00', '&MI_01', '&MI_02', '&MI_03']:
+        dev = f'VID_32AC&PID_{long_pid}'
+        print(dev)
+        parent_name = r'SYSTEM\CurrentControlSet\Enum\USB\\' + dev + mi
+        try:
+            aKey = winreg.OpenKey(aReg, parent_name)
+        except EnvironmentError as e:
+            raise e
+            #continue
+        numSubkeys, numValues, lastModified = winreg.QueryInfoKey(aKey)
+        if verbose:
+            print(dev)#, numSubkeys, numValues, lastModified)
+        for i in range(numSubkeys):
+            try:
+                aValue_name = winreg.EnumKey(aKey, i)
+                if verbose:
+                    print(f'  {aValue_name}')
+                aKey = winreg.OpenKey(aKey, aValue_name)
+
+                with winreg.OpenKey(aKey, 'Device Parameters', access=winreg.KEY_WRITE) as oKey:
+                    if set is not None:
+                        if set:
+                            #winreg.SetValueEx(oKey, 'SelectiveSuspendEnabled', 0, winreg.REG_BINARY, b'\x01')
+                            winreg.SetValueEx(oKey, 'SelectiveSuspendEnabled', 0, winreg.REG_DWORD, 1)
+                        else:
+                            #winreg.SetValueEx(oKey, 'SelectiveSuspendEnabled', 0, winreg.REG_BINARY, b'\x00')
+                            winreg.SetValueEx(oKey, 'SelectiveSuspendEnabled', 0, winreg.REG_DWORD, 0)
+
+                with winreg.OpenKey(aKey, 'Device Parameters', access=winreg.KEY_READ+winreg.KEY_WRITE) as oKey:
+                    (sValue, keyType) = winreg.QueryValueEx(oKey, "SelectiveSuspendEnabled")
+                    if verbose:
+                        if keyType == winreg.REG_DWORD:
+                            print(f'    {sValue} (DWORD)')
+                        elif keyType == winreg.REG_BINARY:
+                            print(f'    {sValue} (BINARY)')
+                        elif keyType == winreg.REG_NONE:
+                            print(f'    {sValue} (NONE)')
+                        else:
+                            print(f'    {sValue} (Type: f{keyType})')
+            except EnvironmentError as e:
+                raise e
 
 if __name__ == "__main__":
     main()
