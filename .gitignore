@@ -1,11 +1,12 @@
 target/
+releases/
 
 # Python
 __pycache__
 venv/
 
 # pyinstaller
-qmk_gui.spec
+qmk_gui*.spec
 build/
 dist/
 
