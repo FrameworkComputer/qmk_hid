@@ -138,9 +138,52 @@ def get_numlock_state():
             pass
 
 
+def update_type(t):
+    types = {
+        'ansi': 0x0012,
+        'iso': 0x0018,
+        'jis': 0x0019,
+        'numpad': 0x0013,
+        'macropad': 0x0014,
+    }
+    if t not in types:
+        print(f"Invalid type '{t}'")
+        sys.exit(1)
+    pid = types[t]
+
+    #if is_pyinstaller():
+    #    print("Not bundled executable. No releases available.")
+    #    sys.exit(1)
+
+    releases = find_releases()
+    versions = sorted(list(releases.keys()), reverse=True)
+    latest_version = versions[0]
+    firmware_path = releases[latest_version][t]
+
+    print(f"Firmware path: '{firmware_path}'")
+
+    devices = find_devs(show=False, verbose=False)
+    #print("Found {} devices".format(len(devices)))
+
+    filtered_devs = [dev for dev in devices if dev['product_id'] == pid]
+
+    if len(filtered_devs) == 0:
+        print("No USB device with VID 32AC PID {:04X} found. Aborting".format(pid))
+        sys.exit(1)
+
+    if len(filtered_devs) > 1:
+        print("More than 1 USB device with VID 32AC PID {:04X} found. Aborting".format(pid))
+        sys.exit(1)
+
+    print("Flashing firmware")
+    flash_firmware(filtered_devs[0], firmware_path)
+
+    print("Waiting 2 seconds for the keyboard to restart")
+    time.sleep(2)
+
+
 def main():
     devices = find_devs(show=False, verbose=False)
-    # print("Found {} devices".format(len(devices)))
 
     device_checkboxes = []
     for dev in devices:
@@ -736,4 +779,11 @@ def selective_suspend_registry(pid, verbose, set=None):
                 raise e
 
 if __name__ == "__main__":
+    # If the script/executable has one of these in the filename,
+    # It's a special script to just update that device
+    for t in ['ansi', 'iso', 'jis', 'macropad', 'numpad']:
+        if t in sys.argv[0]:
+            update_type(t)
+            sys.exit(1)
+
     main()
