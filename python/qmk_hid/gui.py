@@ -143,8 +143,8 @@ def update_type(t):
         'ansi': 0x0012,
         'iso': 0x0018,
         'jis': 0x0019,
-        'numpad': 0x0013,
-        'macropad': 0x0014,
+        'macropad': 0x0013,
+        'numpad': 0x0014,
     }
     if t not in types:
         print(f"Invalid type '{t}'")
