@@ -9,8 +9,10 @@ keywords = ["hid", "qmk", "keyboard"]
 repository = "https://github.com/FrameworkComputer/qmk_hid"
 
 [dependencies]
-clap = { version = "4.3", features = ["derive"] }
-hidapi = "2.3"
+clap = { version = "4.5", features = ["derive"] }
+# hidapi 2.6.2 needs nightly
+# See: https://github.com/ruabmbua/hidapi-rs/pull/158
+hidapi = { version = "=2.6.1" }
 
 [build-dependencies]
 static_vcruntime = "2.0"
