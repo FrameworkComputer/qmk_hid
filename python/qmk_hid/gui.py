@@ -454,7 +454,7 @@ def find_releases():
         for filename in listdir(path):
             if not isfile(join(path, filename)):
                 continue
-            type_search = re.search('framework_(.*)_default.*\.uf2', filename)
+            type_search = re.search(r'framework_(.*)_default.*\.uf2', filename)
             if not type_search:
                 print(f"Filename '{filename}' not matching patten!")
                 sys.exit(1)
