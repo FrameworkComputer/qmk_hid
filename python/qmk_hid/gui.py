@@ -112,7 +112,7 @@ RGB_EFFECTS = [
     "SOLID_MULTISPLASH",
 ]
 
-def debug_print(args=""):
+def debug_print(*args):
     if DEBUG_PRINT:
         print(args)
 
@@ -260,7 +260,7 @@ def main():
         # print('Values', values)
 
         for dev in devices:
-            debug_print("Dev {} is {}".format(dev['product_string'], dev.get('disconnected')))
+            debug_print("Dev '{}' disconnected: {}".format(dev['product_string'], 'disconnected' in dev))
             if 'disconnected' in dev:
                 window['-CHECKBOX-{}-'.format(dev['path'])].update(False, disabled=True)
 
@@ -454,7 +454,7 @@ def find_releases():
         for filename in listdir(path):
             if not isfile(join(path, filename)):
                 continue
-            type_search = re.search('framework_(.*)_default.*\.uf2', filename)
+            type_search = re.search(r'framework_(.*)_default.*\.uf2', filename)
             if not type_search:
                 print(f"Filename '{filename}' not matching patten!")
                 sys.exit(1)
@@ -508,6 +508,7 @@ def find_devs(show, verbose):
                 print(f"Serial No:    {sn}")
 
             if verbose:
+                print(f"Path:         {path}")
                 print(f"VID/PID:      {vid:02X}:{pid:02X}")
                 print(f"Interface:    {interface}")
                 # TODO: print Usage Page
@@ -544,7 +545,7 @@ def send_message(dev, message_id, msg, out_len):
         return out_data
     except (IOError, OSError) as ex:
         dev['disconnected'] = True
-        debug_print("Error: ", ex)
+        debug_print("Error ({}): ".format(dev['path']), ex)
         # Doesn't actually exit the process, pysimplegui catches it
         # But it avoids the return value being used
         # TODO: Get rid of this ugly hack and properly make the caller handle the failure
