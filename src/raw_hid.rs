@@ -1,6 +1,8 @@
 //! Interact with the raw HID interface of QMK firmware
 
-use hidapi::HidDevice;
+use std::{thread, time::Duration};
+
+use hidapi::{HidDevice, HidError};
 
 use crate::QmkError;
 
@@ -78,9 +80,15 @@ pub fn qmk_console(dev: &HidDevice) {
                 let string = String::from_utf8_lossy(&buf);
                 print!("{string}");
             }
+            Err(HidError::HidApiError { message }) if message == "Input/output error" => {
+                println!("Disconnected: {message:?}");
+                thread::sleep(Duration::from_millis(200));
+                continue;
+            }
             Err(err) => {
                 println!("Read err: {err:?}");
             }
         }
+        thread::sleep(Duration::from_millis(100));
     }
 }
