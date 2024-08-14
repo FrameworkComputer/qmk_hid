@@ -6,9 +6,9 @@ jobs:
   # Enable later
   #freebsd-cross-build:
   #  name: Cross-Build for FreeBSD
-  #  runs-on: 'ubuntu-22.04'
+  #  runs-on: 'ubuntu-24.04'
   #  steps:
-  #  - uses: actions/checkout@v3
+  #  - uses: actions/checkout@v4
 
   #  - name: Setup Rust toolchain
   #    run: rustup show
@@ -20,16 +20,16 @@ jobs:
   #    run: cross build --target=x86_64-unknown-freebsd
 
   #  - name: Upload FreeBSD App
-  #    uses: actions/upload-artifact@v3
+  #    uses: actions/upload-artifact@v4
   #    with:
   #      name: qmk_hid_freebsd
   #      path: target/x86_64-unknown-freebsd/debug/qmk_hid
 
   build:
     name: Build Linux
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Install dependencies
       run: |
@@ -48,13 +48,13 @@ jobs:
       run: cargo run -- --help
 
     - name: Upload Linux Debug tool
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: qmk_hid_debug_linux
         path: target/debug/qmk_hid
 
     - name: Upload Linux Relase tool
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: qmk_hid_linux
         path: target/release/qmk_hid
@@ -63,7 +63,7 @@ jobs:
     name: Build Windows
     runs-on: windows-2022
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Setup Rust toolchain
       run: rustup show
@@ -77,22 +77,22 @@ jobs:
       run: cargo run -- --help
 
     - name: Upload Windows Debug App
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: qmk_hid_debug_windows
         path: target/debug/qmk_hid.exe
 
     - name: Upload Windows Release App
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: qmk_hid_windows
         path: target/release/qmk_hid.exe
 
   lints:
     name: Lints
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Install dependencies
       run: |
