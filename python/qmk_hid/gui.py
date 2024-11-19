@@ -4,7 +4,10 @@ import sys
 import subprocess
 import time
 
-import PySimpleGUI as sg
+#import PySimpleGUI as sg
+import tkinter as tk
+from tkinter import ttk, messagebox
+
 import hid
 if os.name == 'nt':
     from win32api import GetKeyState, keybd_event
@@ -137,6 +140,102 @@ def get_numlock_state():
             # Ignore tool not found, just return None
             pass
 
+def tk_main():
+    devices = find_devs(show=False, verbose=False)
+    # print("Found {} devices".format(len(devices)))
+
+    # TODO: Implement for tkinter
+    # Only in the pyinstaller bundle are the FW update binaries included
+    #if is_pyinstaller():
+    #    releases = find_releases()
+    #    versions = sorted(list(releases.keys()), reverse=True)
+    #
+    #    bundled_update = [
+    #        [sg.Text("Update Version")],
+    #        [sg.Text("Version"), sg.Push(), sg.Combo(versions, k='-VERSION-', enable_events=True, default_value=versions[0])],
+    #        [sg.Text("Type"), sg.Push(), sg.Combo(list(releases[versions[0]]), k='-TYPE-', enable_events=True)],
+    #        [sg.Text("Make sure the firmware is compatible with\nALL selected devices!")],
+    #        [sg.Button("Flash", k='-FLASH-', disabled=True)],
+    #        [sg.HorizontalSeparator()],
+    #    ]
+    #else:
+    #    bundled_update = []
+
+    root = tk.Tk()
+    root.title("QMK GUI")
+
+    tabControl = ttk.Notebook(root)
+    tab1 = ttk.Frame(tabControl)
+    tab2 = ttk.Frame(tabControl)
+    tabControl.add(tab1, text="Home")
+    tabControl.add(tab2, text="Advanced")
+    tabControl.pack(expand=1, fill="both")
+
+    # Device Checkboxes
+    detected_devices_frame = ttk.LabelFrame(tab1, text="Detected Devices", style="TLabelframe")
+    detected_devices_frame.pack(fill="x", padx=10, pady=5)
+
+    global device_checkboxes
+    device_checkboxes = {}
+    for dev in devices:
+        device_info = "{}\nSerial No: {}\nFW Version: {}\n".format(
+            dev['product_string'],
+            dev['serial_number'],
+            format_fw_ver(dev['release_number'])
+        )
+        checkbox_var = tk.BooleanVar(value=True)
+        checkbox = ttk.Checkbutton(detected_devices_frame, text=device_info, variable=checkbox_var, style="TCheckbutton")
+        checkbox.pack(anchor="w")
+        device_checkboxes[dev['path']] = checkbox_var
+
+    # Device Control Buttons
+    device_control_frame = ttk.LabelFrame(tab1, text="Device Control", style="TLabelframe")
+    device_control_frame.pack(fill="x", padx=10, pady=5)
+    control_buttons = {
+        "Bootloader": "bootloader",
+        "Save Changes": "save_changes",
+    }
+    for text, action in control_buttons.items():
+        ttk.Button(device_control_frame, text=text, command=lambda a=action: perform_action(devices, a), style="TButton").pack(side="left", padx=5, pady=5)
+
+    # Brightness Slider
+    brightness_frame = ttk.LabelFrame(tab1, text="Brightness", style="TLabelframe")
+    brightness_frame.pack(fill="x", padx=10, pady=5)
+    global brightness_scale
+    brightness_scale = tk.Scale(brightness_frame, from_=0, to=255, orient='horizontal', command=lambda value: perform_action(devices, 'brightness', value=int(value)))
+    brightness_scale.set(120)  # Default value
+    brightness_scale.pack(fill="x", padx=5, pady=5)
+
+    # RGB color
+    rgb_color_buttons = {
+        "Red": "red",
+        "Green": "green",
+        "Blue": "blue",
+        "White": "white",
+        "Off": "off",
+    }
+    btn_frame = ttk.Frame(brightness_frame)
+    btn_frame.pack(side=tk.TOP)
+    for text, action in rgb_color_buttons.items():
+        btn = ttk.Button(btn_frame, text=text, command=lambda a=action: perform_action(devices, a), style="TButton")
+        btn.pack(side="left", padx=5, pady=5)
+
+    # RGB Effect Combo Box
+    rgb_effect_label = tk.Label(brightness_frame, text="RGB Effect")
+    rgb_effect_label.pack(side=tk.LEFT, padx=5, pady=5)
+    rgb_effect_combo = ttk.Combobox(brightness_frame, values=RGB_EFFECTS, style="TCombobox", state="readonly")
+    rgb_effect_combo.pack(side=tk.LEFT, padx=5, pady=5)
+    rgb_effect_combo.bind("<<ComboboxSelected>>", lambda event: perform_action(devices, 'rgb_effect', value=RGB_EFFECTS.index(rgb_effect_combo.get())))
+
+    # Tab 2
+    # TODO: Add numlock
+    # TODO: Add BIOS mode, factory mode buttons
+    # TODO: Add registry controls, maybe hidden behind secret shortbut
+
+    program_ver_label = tk.Label(tab1, text="Program Version: 0.2.0")
+    program_ver_label.pack(side=tk.LEFT, padx=5, pady=5)
+
+    root.mainloop()
 
 def main():
     devices = find_devs(show=False, verbose=False)
@@ -620,6 +719,11 @@ def set_rgb_brightness(dev, brightness):
 def set_brightness(dev, brightness):
     set_backlight(dev, BACKLIGHT_VALUE_BRIGHTNESS, brightness)
 
+# Set both
+def set_white_rgb_brightness(dev, brightness):
+    set_brightness(dev, brightness)
+    set_rgb_brightness(dev, brightness)
+
 
 def set_rgb_color(dev, hue, saturation):
     (cur_hue, cur_sat) = get_rgb_color(dev)
@@ -735,6 +839,34 @@ def selective_suspend_registry(pid, verbose, set=None):
                             print(f'    {sValue} (Type: f{keyType})')
             except EnvironmentError as e:
                 raise e
+
+def perform_action(devices, action, value=None):
+    action_map = {
+        "bootloader": bootloader_jump,
+        "save_changes": save,
+        # TODO: factory_mode, bios_mode
+        "eeprom_reset": eeprom_reset,
+        "red": lambda dev: set_rgb_color(dev, RED_HUE, 255),
+        "green": lambda dev: set_rgb_color(dev, GREEN_HUE, 255),
+        "blue": lambda dev: set_rgb_color(dev, BLUE_HUE, 255),
+        "white": lambda dev: set_rgb_color(dev, None, 0),
+        # TODO: Also window['-BRIGHTNESS-'].Update(0)
+        "off": lambda dev: set_rgb_brightness(dev, 0),
+        "brightness": lambda dev: set_white_rgb_brightness(dev, value),
+        "rgb_effect": lambda dev: set_rgb_u8(dev, RGB_MATRIX_VALUE_EFFECT, value),
+    }
+    selected_devices = get_selected_devices(devices)
+    for dev in selected_devices:
+        if action in action_map:
+            action_map[action](dev)
+
+def get_selected_devices(devices):
+    return [dev for dev in devices if dev['path'] in device_checkboxes and device_checkboxes[dev['path']].get()]
+
+def set_pattern(devices, pattern_name):
+    selected_devices = get_selected_devices(devices)
+    for dev in selected_devices:
+        pattern(dev, pattern_name)
 
 if __name__ == "__main__":
     main()
