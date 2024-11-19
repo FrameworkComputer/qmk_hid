@@ -7,11 +7,17 @@ It will soon be superceded by QMK XAP, but that isn't ready yet.
 
 Tested to work on Windows and Linux, without any drivers or admin privileges.
 
-###### GUI
-
 There is also an easy to use GUI tool that does not require commandline interaction.
 
 See [GUI README](python/README.md)
+
+### Supported devices
+
+The tool is generic and works for any device using [QMK Firmware](https://qmk.fm/).
+
+But it was built for, and some functionality only works with,
+[Framework 16 keyboard modules](https://frame.work/tw/en/products/laptop16-diy-amd-7040?tab=modules).
+This includes all keyboard variants, the numpad and macropad.
 
 ## Running
 
