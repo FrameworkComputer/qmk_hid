@@ -11,7 +11,7 @@ if os.name == 'nt':
     from win32con import VK_NUMLOCK, VK_CAPITAL
     import winreg
 
-import uf2conv
+import qmk_hid.uf2conv
 
 # TODO:
 # - Get current values
