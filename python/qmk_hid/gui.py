@@ -229,8 +229,21 @@ def tk_main():
 
     # Tab 2
     # TODO: Add numlock
-    # TODO: Add BIOS mode, factory mode buttons
     # TODO: Add registry controls, maybe hidden behind secret shortbut
+    # Advanced Device Control Buttons
+    eeprom_frame = ttk.LabelFrame(tab2, text="EEPROM", style="TLabelframe")
+    eeprom_frame.pack(fill="x", padx=5, pady=5)
+    ttk.Button(eeprom_frame, text="Reset EEPROM", command=lambda: perform_action(devices, 'reset_eeprom'), style="TButton").pack(side="left", padx=5, pady=5)
+
+    bios_mode_frame = ttk.LabelFrame(tab2, text="BIOS Mode", style="TLabelframe")
+    bios_mode_frame.pack(fill="x", padx=5, pady=5)
+    ttk.Button(bios_mode_frame, text="Enable", command=lambda: perform_action(devices, 'bios_mode', value=True), style="TButton").pack(side="left", padx=5, pady=5)
+    ttk.Button(bios_mode_frame, text="Disable", command=lambda: perform_action(devices, 'bios_mode', value=False), style="TButton").pack(side="left", padx=5, pady=5)
+
+    factory_mode_frame = ttk.LabelFrame(tab2, text="Factory Mode", style="TLabelframe")
+    factory_mode_frame.pack(fill="x", padx=5, pady=5)
+    ttk.Button(factory_mode_frame, text="Enable", command=lambda: perform_action(devices, 'factory_mode', value=True), style="TButton").pack(side="left", padx=5, pady=5)
+    ttk.Button(factory_mode_frame, text="Disable", command=lambda: perform_action(devices, 'factory_mode', value=False), style="TButton").pack(side="left", padx=5, pady=5)
 
     program_ver_label = tk.Label(tab1, text="Program Version: 0.2.0")
     program_ver_label.pack(side=tk.LEFT, padx=5, pady=5)
@@ -842,10 +855,12 @@ def selective_suspend_registry(pid, verbose, set=None):
 
 def perform_action(devices, action, value=None):
     action_map = {
+        # TODO: Show restart_hint and disable checkbox
         "bootloader": bootloader_jump,
         "save_changes": save,
-        # TODO: factory_mode, bios_mode
         "eeprom_reset": eeprom_reset,
+        "bios_mode": lambda dev: bios_mode(dev, value),
+        "factory_mode": lambda dev: factory_mode(dev, value),
         "red": lambda dev: set_rgb_color(dev, RED_HUE, 255),
         "green": lambda dev: set_rgb_color(dev, GREEN_HUE, 255),
         "blue": lambda dev: set_rgb_color(dev, BLUE_HUE, 255),
