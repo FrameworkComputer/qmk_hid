@@ -747,13 +747,22 @@ def set_rgb_color(dev, hue, saturation):
 
 
 def restart_hint():
-    sg.Popup('After updating a device, \nrestart the application\nto reload the connections.')
+    parent = tk.Tk()
+    parent.title("Restart Application")
+    message = tk.Message(parent, text="After updating a device,\n restart the application to reload the connections.", width=800)
+    message.pack(padx=20, pady=20)
+    parent.mainloop()
 
 
 def replug_hint():
-    sg.Popup('After changing selective suspend setting, make sure to unplug and re-plug the device to apply the settings.')
+    parent = tk.Tk()
+    parent.title("Replug Keyboard")
+    message = tk.Message(parent, text="After changing selective suspend setting, make sure to unplug and re-plug the device to apply the settings.", width=800)
+    message.pack(padx=20, pady=20)
+    parent.mainloop()
 
 
+# TODO: Show restart_hint() and deselect checkbox
 def flash_firmware(dev, fw_path):
     print(f"Flashing {fw_path}")
 
@@ -790,6 +799,7 @@ def flash_firmware(dev, fw_path):
     print("Flashing finished")
 
 
+# TODO: Show replug_hint()
 def selective_suspend_registry(pid, verbose, set=None):
     # The set of keys we care about (under HKEY_LOCAL_MACHINE) are
     # SYSTEM\CurrentControlSet\Enum\USB\VID_32AC&PID_0013\Device Parameters\SelectiveSuspendEnabled
@@ -854,9 +864,12 @@ def selective_suspend_registry(pid, verbose, set=None):
                 raise e
 
 def perform_action(devices, action, value=None):
+    if action == "bootloader":
+        # TODO: Disable checkbox of that device
+        restart_hint()
+
     action_map = {
-        # TODO: Show restart_hint and disable checkbox
-        "bootloader": bootloader_jump,
+        "bootloader": lambda dev: bootloader_jump(dev),
         "save_changes": save,
         "eeprom_reset": eeprom_reset,
         "bios_mode": lambda dev: bios_mode(dev, value),
