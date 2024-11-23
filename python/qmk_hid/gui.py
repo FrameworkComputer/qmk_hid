@@ -147,11 +147,6 @@ def main():
 
     root = tk.Tk()
     root.title("QMK GUI")
-    # TODO: Handle unplug gracefully
-    # for dev in devices:
-    #     debug_print("Dev '{}' disconnected: {}".format(dev['product_string'], 'disconnected' in dev))
-    #     if 'disconnected' in dev:
-    #         window['-CHECKBOX-{}-'.format(dev['path'])].update(False, disabled=True)
 
     tabControl = ttk.Notebook(root)
     tab1 = ttk.Frame(tabControl)
@@ -303,14 +298,6 @@ def update_numlock_state(state_var, refresh_btn=None, toggle_btn=None):
         if toggle_btn:
             toggle_btn.config(state=tk.NORMAL)
         state_var.set("On (Numbers)" if numlock_on else "Off (Arrows)")
-
-# Keeping until all features are implemented
-def main_sg():
-
-    while True:
-        event, values = window.read()
-        # print('Event', event)
-        # print('Values', values)
 
 
 def toggle_numlock():
@@ -493,12 +480,8 @@ def send_message(dev, message_id, msg, out_len):
         out_data = h.read(out_len+3)
         return out_data
     except (IOError, OSError) as ex:
-        dev['disconnected'] = True
+        disable_devices([dev])
         debug_print("Error ({}): ".format(dev['path']), ex)
-        # Doesn't actually exit the process, pysimplegui catches it
-        # But it avoids the return value being used
-        # TODO: Get rid of this ugly hack and properly make the caller handle the failure
-        sys.exit(1)
 
 def set_keyboard_value(dev, value, number):
     msg = [value, number]
