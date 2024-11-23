@@ -131,6 +131,8 @@ def get_numlock_state():
         return GetKeyState(VK_NUMLOCK)
     else:
         try:
+            # TODO: This doesn't work on wayland
+            # In GNOME we can do gsettings set org.gnome.settings-daemon.peripherals.keyboard numlock-state on
             output = subprocess.run(['numlockx', 'status'], stdout=subprocess.PIPE).stdout
             if b'on' in output:
                 return True
@@ -228,7 +230,6 @@ def tk_main():
     rgb_effect_combo.bind("<<ComboboxSelected>>", lambda event: perform_action(devices, 'rgb_effect', value=RGB_EFFECTS.index(rgb_effect_combo.get())))
 
     # Tab 2
-    # TODO: Add numlock
     # TODO: Add registry controls, maybe hidden behind secret shortbut
     # Advanced Device Control Buttons
     eeprom_frame = ttk.LabelFrame(tab2, text="EEPROM", style="TLabelframe")
@@ -245,10 +246,37 @@ def tk_main():
     ttk.Button(factory_mode_frame, text="Enable", command=lambda: perform_action(devices, 'factory_mode', value=True), style="TButton").pack(side="left", padx=5, pady=5)
     ttk.Button(factory_mode_frame, text="Disable", command=lambda: perform_action(devices, 'factory_mode', value=False), style="TButton").pack(side="left", padx=5, pady=5)
 
+    # Unreliable on Linux
+    # Different versions of numlockx behave differently
+    # Xorg vs Wayland is different
+    if os.name == 'nt':
+        numlock_frame = ttk.LabelFrame(tab2, text="OS Numlock Setting", style="TLabelframe")
+        numlock_frame.pack(fill="x", padx=5, pady=5)
+        numlock_state_var = tk.StringVar()
+        numlock_state_var.set("State: Unknown")
+        numlock_state_label = tk.Label(numlock_frame, textvariable=numlock_state_var).pack(side="top", padx=5, pady=5)
+        refresh_btn = ttk.Button(numlock_frame, text="Refresh", command=lambda: update_numlock_state(numlock_state_var), style="TButton", state=tk.DISABLED)
+        refresh_btn.pack(side="left", padx=5, pady=5)
+        toggle_btn = ttk.Button(numlock_frame, text="Emulate numlock button press", command=lambda: toggle_numlock(), style="TButton", state=tk.DISABLED)
+        toggle_btn.pack(side="left", padx=5, pady=5)
+
+        update_numlock_state(numlock_state_var, refresh_btn, toggle_btn)
+
     program_ver_label = tk.Label(tab1, text="Program Version: 0.2.0")
     program_ver_label.pack(side=tk.LEFT, padx=5, pady=5)
 
     root.mainloop()
+
+def update_numlock_state(state_var, refresh_btn=None, toggle_btn=None):
+    numlock_on = get_numlock_state()
+    if numlock_on is None and os != 'nt':
+        state_var.set("Unknown, please install the 'numlockx' command")
+    else:
+        if refresh_btn:
+            refresh_btn.config(state=tk.NORMAL)
+        if toggle_btn:
+            toggle_btn.config(state=tk.NORMAL)
+        state_var.set("On (Numbers)" if numlock_on else "Off (Arrows)")
 
 def main():
     devices = find_devs(show=False, verbose=False)
@@ -359,14 +387,6 @@ def main():
     window.start_thread(lambda: periodic_event(window), (THREAD_KEY, THREAD_EXITING))
 
     while True:
-        numlock_on = get_numlock_state()
-        if numlock_on is None and os != 'nt':
-            window['-NUMLOCK-STATE-'].update("Unknown, please install the 'numlockx' command")
-        else:
-            window['-NUMLOCK-REFRESH-'].update(disabled=False)
-            window['-NUMLOCK-TOGGLE-'].update(disabled=False)
-            window['-NUMLOCK-STATE-'].update("On (Numbers)" if numlock_on else "Off (Arrows)")
-
         event, values = window.read()
         # print('Event', event)
         # print('Values', values)
