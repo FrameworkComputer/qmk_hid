@@ -230,19 +230,21 @@ def tk_main():
     rgb_effect_combo.bind("<<ComboboxSelected>>", lambda event: perform_action(devices, 'rgb_effect', value=RGB_EFFECTS.index(rgb_effect_combo.get())))
 
     # Tab 2
-    # TODO: Add registry controls, maybe hidden behind secret shortbut
     # Advanced Device Control Buttons
     eeprom_frame = ttk.LabelFrame(tab2, text="EEPROM", style="TLabelframe")
     eeprom_frame.pack(fill="x", padx=5, pady=5)
+    tk.Label(eeprom_frame, text="Clear user configured settings").pack(side="top", padx=5, pady=5)
     ttk.Button(eeprom_frame, text="Reset EEPROM", command=lambda: perform_action(devices, 'reset_eeprom'), style="TButton").pack(side="left", padx=5, pady=5)
 
     bios_mode_frame = ttk.LabelFrame(tab2, text="BIOS Mode", style="TLabelframe")
     bios_mode_frame.pack(fill="x", padx=5, pady=5)
+    tk.Label(bios_mode_frame, text="Disable function buttons, force F1-12").pack(side="top", padx=5, pady=5)
     ttk.Button(bios_mode_frame, text="Enable", command=lambda: perform_action(devices, 'bios_mode', value=True), style="TButton").pack(side="left", padx=5, pady=5)
     ttk.Button(bios_mode_frame, text="Disable", command=lambda: perform_action(devices, 'bios_mode', value=False), style="TButton").pack(side="left", padx=5, pady=5)
 
     factory_mode_frame = ttk.LabelFrame(tab2, text="Factory Mode", style="TLabelframe")
     factory_mode_frame.pack(fill="x", padx=5, pady=5)
+    tk.Label(factory_mode_frame, text="Ignore user configured keymap").pack(side="top", padx=5, pady=5)
     ttk.Button(factory_mode_frame, text="Enable", command=lambda: perform_action(devices, 'factory_mode', value=True), style="TButton").pack(side="left", padx=5, pady=5)
     ttk.Button(factory_mode_frame, text="Disable", command=lambda: perform_action(devices, 'factory_mode', value=False), style="TButton").pack(side="left", padx=5, pady=5)
 
@@ -261,6 +263,15 @@ def tk_main():
         toggle_btn.pack(side="left", padx=5, pady=5)
 
         update_numlock_state(numlock_state_var, refresh_btn, toggle_btn)
+
+    # TODO: Maybe hide behind secret shortcut
+    if os.name == 'nt':
+        registry_frame = ttk.LabelFrame(tab2, text="Windows Registry Tweaks", style="TLabelframe")
+        registry_frame.pack(fill="x", padx=5, pady=5)
+        tk.Label(registry_frame, text="Disabled. Only for very advanced debugging").pack(side="top", padx=5, pady=5)
+        ttk.Button(registry_frame, text="Enable Selective Suspend", command=lambda dev: selective_suspend_wrapper(dev, True), style="TButton", state=tk.DISABLED).pack(side="left", padx=5, pady=5)
+        toggle_btn = ttk.Button(registry_frame, text="Disable Selective Suspend", command=lambda dev: selective_suspend_wrapper(dev, False), style="TButton", state=tk.DISABLED).pack(side="left", padx=5, pady=5)
+
 
     program_ver_label = tk.Label(tab1, text="Program Version: 0.2.0")
     program_ver_label.pack(side=tk.LEFT, padx=5, pady=5)
@@ -818,8 +829,15 @@ def flash_firmware(dev, fw_path):
 
     print("Flashing finished")
 
+def selective_suspend_wrapper(dev, enable):
+    if enable:
+        selective_suspend_registry(dev['product_id'], False, set=True)
+        replug_hint()
+    else:
+        selective_suspend_registry(dev['product_id'], False, set=False)
+        replug_hint()
 
-# TODO: Show replug_hint()
+
 def selective_suspend_registry(pid, verbose, set=None):
     # The set of keys we care about (under HKEY_LOCAL_MACHINE) are
     # SYSTEM\CurrentControlSet\Enum\USB\VID_32AC&PID_0013\Device Parameters\SelectiveSuspendEnabled
