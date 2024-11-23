@@ -7,9 +7,13 @@ It will soon be superceded by QMK XAP, but that isn't ready yet.
 
 Tested to work on Windows and Linux, without any drivers or admin privileges.
 
+### GUI
+
 There is also an easy to use GUI tool that does not require commandline interaction.
 
 See [GUI README](python/README.md)
+
+![](screenshots\qmk_gui_screenshot.png)
 
 ### Supported devices
 
