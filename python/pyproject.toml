@@ -29,9 +29,9 @@ classifiers = [
 Issues = "https://github.com/FrameworkComputer/qmk_hid/issues"
 Source = "https://github.com/FrameworkComputer/qmk_hid"
 
-# TODO: Figure out how to add a runnable-script
-#[project.scripts]
-#qmk_hid = "qmk_hid.gui:main_cli"
+# TODO: There's no CLI yet
+# [project.scripts]
+# qmk_hid = "qmk_hid.gui:main_cli"
 
 [project.gui-scripts]
 qmk_gui = "qmk_hid.gui:main"
