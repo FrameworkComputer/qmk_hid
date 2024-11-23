@@ -218,6 +218,12 @@ def main():
     rgb_effect_combo.pack(side=tk.LEFT, padx=5, pady=5)
     rgb_effect_combo.bind("<<ComboboxSelected>>", lambda event: perform_action(devices, 'rgb_effect', value=RGB_EFFECTS.index(rgb_effect_combo.get())))
 
+    # White backlight keyboard
+    rgb_effect_label = tk.Label(brightness_frame, text="White Effect")
+    rgb_effect_label.pack(side=tk.LEFT, padx=5, pady=5)
+    ttk.Button(brightness_frame, text="Breathing", command=lambda a=action: perform_action(devices, "breathing_on"), style="TButton").pack(side="left", padx=5, pady=5)
+    ttk.Button(brightness_frame, text="None", command=lambda a=action: perform_action(devices, "breathing_off"), style="TButton").pack(side="left", padx=5, pady=5)
+
     # Tab 2
     # Advanced Device Control Buttons
     eeprom_frame = ttk.LabelFrame(tab2, text="EEPROM", style="TLabelframe")
@@ -563,6 +569,9 @@ def set_rgb_brightness(dev, brightness):
 def set_brightness(dev, brightness):
     set_backlight(dev, BACKLIGHT_VALUE_BRIGHTNESS, brightness)
 
+def set_white_effect(dev, breathing_on):
+    set_backlight(dev, BACKLIGHT_VALUE_EFFECT, breathing_on)
+
 # Set both
 def set_white_rgb_brightness(dev, brightness):
     set_brightness(dev, brightness)
@@ -734,6 +743,8 @@ def perform_action(devices, action, value=None):
         "blue": lambda dev: set_rgb_color(dev, BLUE_HUE, 255),
         "white": lambda dev: set_rgb_color(dev, None, 0),
         "off": lambda dev: set_rgb_brightness(dev, 0),
+        "breathing_on": lambda dev: set_white_effect(dev, True),
+        "breathing_off": lambda dev: set_white_effect(dev, False),
         "brightness": lambda dev: set_white_rgb_brightness(dev, value),
         "rgb_effect": lambda dev: set_rgb_u8(dev, RGB_MATRIX_VALUE_EFFECT, value),
     }
