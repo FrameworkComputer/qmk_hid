@@ -286,8 +286,10 @@ def main():
         toggle_btn = ttk.Button(registry_frame, text="Disable Selective Suspend", command=lambda dev: selective_suspend_wrapper(dev, False), style="TButton", state=tk.DISABLED).pack(side="left", padx=5, pady=5)
 
     # Only in the pyinstaller bundle are the FW update binaries included
-    if is_pyinstaller() or True:
-        releases = find_releases()
+    releases = find_releases()
+    if not releases:
+        tk.Label(tab_fw_update, text="Cannot find firmware updates").pack(side="top", padx=5, pady=5)
+    else:
         versions = sorted(list(releases.keys()), reverse=True)
 
         flash_btn = None
@@ -404,9 +406,13 @@ def find_releases():
     from os.path import isfile, join
     import re
 
-    res_path = resource_path()
-    versions = listdir(os.path.join(res_path, "releases"))
     releases = {}
+    res_path = resource_path()
+    try:
+        versions = listdir(os.path.join(res_path, "releases"))
+    except FileNotFoundError:
+        return releases
+
     for version in versions:
         path = join(res_path, "releases", version)
         releases[version] = {}
