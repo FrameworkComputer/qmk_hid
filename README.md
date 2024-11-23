@@ -13,7 +13,7 @@ There is also an easy to use GUI tool that does not require commandline interact
 
 See [GUI README](python/README.md)
 
-![](screenshots\qmk_gui_screenshot.png)
+![](screenshots/qmk_gui_screenshot.png)
 
 ### Supported devices
 
