@@ -13,7 +13,7 @@ if os.name == 'nt':
     from win32con import VK_NUMLOCK, VK_CAPITAL
     import winreg
 
-import qmk_hid.uf2conv
+from qmk_hid import uf2conv
 
 # TODO:
 # - Get current values
@@ -145,30 +145,20 @@ def main():
     devices = find_devs(show=False, verbose=False)
     # print("Found {} devices".format(len(devices)))
 
-    # TODO: Implement for tkinter
-    # Only in the pyinstaller bundle are the FW update binaries included
-    #if is_pyinstaller():
-    #    releases = find_releases()
-    #    versions = sorted(list(releases.keys()), reverse=True)
-    #
-    #    bundled_update = [
-    #        [sg.Text("Update Version")],
-    #        [sg.Text("Version"), sg.Push(), sg.Combo(versions, k='-VERSION-', enable_events=True, default_value=versions[0])],
-    #        [sg.Text("Type"), sg.Push(), sg.Combo(list(releases[versions[0]]), k='-TYPE-', enable_events=True)],
-    #        [sg.Text("Make sure the firmware is compatible with\nALL selected devices!")],
-    #        [sg.Button("Flash", k='-FLASH-', disabled=True)],
-    #        [sg.HorizontalSeparator()],
-    #    ]
-    #else:
-    #    bundled_update = []
-
     root = tk.Tk()
     root.title("QMK GUI")
+    # TODO: Handle unplug gracefully
+    # for dev in devices:
+    #     debug_print("Dev '{}' disconnected: {}".format(dev['product_string'], 'disconnected' in dev))
+    #     if 'disconnected' in dev:
+    #         window['-CHECKBOX-{}-'.format(dev['path'])].update(False, disabled=True)
 
     tabControl = ttk.Notebook(root)
     tab1 = ttk.Frame(tabControl)
+    tab_fw_update = ttk.Frame(tabControl)
     tab2 = ttk.Frame(tabControl)
     tabControl.add(tab1, text="Home")
+    tabControl.add(tab_fw_update, text="Firmware Update")
     tabControl.add(tab2, text="Advanced")
     tabControl.pack(expand=1, fill="both")
 
@@ -187,7 +177,7 @@ def main():
         checkbox_var = tk.BooleanVar(value=True)
         checkbox = ttk.Checkbutton(detected_devices_frame, text=device_info, variable=checkbox_var, style="TCheckbutton")
         checkbox.pack(anchor="w")
-        device_checkboxes[dev['path']] = checkbox_var
+        device_checkboxes[dev['path']] = (checkbox_var, checkbox)
 
     # Device Control Buttons
     device_control_frame = ttk.LabelFrame(tab1, text="Device Control", style="TLabelframe")
@@ -271,6 +261,26 @@ def main():
         ttk.Button(registry_frame, text="Enable Selective Suspend", command=lambda dev: selective_suspend_wrapper(dev, True), style="TButton", state=tk.DISABLED).pack(side="left", padx=5, pady=5)
         toggle_btn = ttk.Button(registry_frame, text="Disable Selective Suspend", command=lambda dev: selective_suspend_wrapper(dev, False), style="TButton", state=tk.DISABLED).pack(side="left", padx=5, pady=5)
 
+    # Only in the pyinstaller bundle are the FW update binaries included
+    if is_pyinstaller() or True:
+        releases = find_releases()
+        versions = sorted(list(releases.keys()), reverse=True)
+
+        flash_btn = None
+        fw_type_combo = None
+
+        fw_update_frame = ttk.LabelFrame(tab_fw_update, text="Update Firmware", style="TLabelframe")
+        fw_update_frame.pack(fill="x", padx=5, pady=5)
+        #tk.Label(fw_update_frame, text="Ignore user configured keymap").pack(side="top", padx=5, pady=5)
+        fw_ver_combo = ttk.Combobox(fw_update_frame, values=versions, style="TCombobox", state="readonly")
+        fw_ver_combo.pack(side=tk.LEFT, padx=5, pady=5)
+        fw_ver_combo.current(0)
+        fw_ver_combo.bind("<<ComboboxSelected>>", lambda event: select_fw_version(fw_ver_combo.get(), fw_type_combo, releases))
+        fw_type_combo = ttk.Combobox(fw_update_frame, values=list(releases[versions[0]]), style="TCombobox", state="readonly")
+        fw_type_combo.pack(side=tk.LEFT, padx=5, pady=5)
+        fw_type_combo.bind("<<ComboboxSelected>>", lambda event: select_fw_type(fw_type_combo.get(), flash_btn))
+        flash_btn = ttk.Button(fw_update_frame, text="Update", command=lambda: tk_flash_firmware(devices, releases, fw_ver_combo.get(), fw_type_combo.get()), state=tk.DISABLED, style="TButton")
+        flash_btn.pack(side="left", padx=5, pady=5)
 
     program_ver_label = tk.Label(tab1, text="Program Version: 0.2.0")
     program_ver_label.pack(side=tk.LEFT, padx=5, pady=5)
@@ -290,56 +300,12 @@ def update_numlock_state(state_var, refresh_btn=None, toggle_btn=None):
 
 # Keeping until all features are implemented
 def main_sg():
-    # Only in the pyinstaller bundle are the FW update binaries included
-    if is_pyinstaller():
-        releases = find_releases()
-        versions = sorted(list(releases.keys()), reverse=True)
-
-        bundled_update = [
-            [sg.Text("Update Version")],
-            [sg.Text("Version"), sg.Push(), sg.Combo(versions, k='-VERSION-', enable_events=True, default_value=versions[0])],
-            [sg.Text("Type"), sg.Push(), sg.Combo(list(releases[versions[0]]), k='-TYPE-', enable_events=True)],
-            [sg.Text("Make sure the firmware is compatible with\nALL selected devices!")],
-            [sg.Button("Flash", k='-FLASH-', disabled=True)],
-            [sg.HorizontalSeparator()],
-        ]
-    else:
-        bundled_update = []
 
     while True:
         event, values = window.read()
         # print('Event', event)
         # print('Values', values)
 
-        for dev in devices:
-            debug_print("Dev '{}' disconnected: {}".format(dev['product_string'], 'disconnected' in dev))
-            if 'disconnected' in dev:
-                window['-CHECKBOX-{}-'.format(dev['path'])].update(False, disabled=True)
-
-        selected_devices = [
-            dev for dev in devices if
-            values and values['-CHECKBOX-{}-'.format(dev['path'])]
-        ]
-        # print("Selected {} devices".format(len(selected_devices)))
-
-        # Updating firmware
-        if event == "-VERSION-":
-            # After selecting a version, we can list the types of firmware available for this version
-            types = list(releases[values['-VERSION-']])
-            window['-TYPE-'].update(value=types[0], values=types)
-        if event == "-TYPE-":
-            # Once the user has selected a type, the exact firmware file is known and can be flashed
-            window['-FLASH-'].update(disabled=False)
-        if event == "-FLASH-":
-            if len(selected_devices) != 1:
-                sg.Popup('To flash select exactly 1 device.')
-                continue
-            dev = selected_devices[0]
-            ver = values['-VERSION-']
-            t = values['-TYPE-']
-            flash_firmware(dev, releases[ver][t])
-            restart_hint()
-            window['-CHECKBOX-{}-'.format(dev['path'])].update(False, disabled=True)
 
 def toggle_numlock():
     if os.name == 'nt':
@@ -618,6 +584,13 @@ def restart_hint():
     message.pack(padx=20, pady=20)
     parent.mainloop()
 
+def info_popup(msg):
+    parent = tk.Tk()
+    parent.title("Info")
+    message = tk.Message(parent, text="msg", width=800)
+    message.pack(padx=20, pady=20)
+    parent.mainloop()
+
 
 def replug_hint():
     parent = tk.Tk()
@@ -627,9 +600,8 @@ def replug_hint():
     parent.mainloop()
 
 
-# TODO: Show restart_hint() and deselect checkbox
 def flash_firmware(dev, fw_path):
-    print(f"Flashing {fw_path}")
+    print(f"Flashing {fw_path} onto {dev['path']}")
 
     # First jump to bootloader
     drives = uf2conv.list_drives()
@@ -735,13 +707,17 @@ def selective_suspend_registry(pid, verbose, set=None):
             except EnvironmentError as e:
                 raise e
 
+def disable_devices(devices):
+    # Disable checkbox of selected devices
+    for dev in devices:
+        for path, (checkbox_var, checkbox) in device_checkboxes.items():
+            if path == dev['path']:
+                checkbox_var.set(False)
+                checkbox.config(state=tk.DISABLED)
+
 def perform_action(devices, action, value=None):
     if action == "bootloader":
-        # Disable checkbox of that device
-        for dev in devices:
-            for path, checkbox in device_checkboxes.items():
-                if path == dev['path']:
-                    checkbox.set(False)
+        disable_devices(devices)
 
         restart_hint()
     if action == "off":
@@ -767,12 +743,33 @@ def perform_action(devices, action, value=None):
             action_map[action](dev)
 
 def get_selected_devices(devices):
-    return [dev for dev in devices if dev['path'] in device_checkboxes and device_checkboxes[dev['path']].get()]
+    return [dev for dev in devices if dev['path'] in device_checkboxes and device_checkboxes[dev['path']][0].get()]
 
 def set_pattern(devices, pattern_name):
     selected_devices = get_selected_devices(devices)
     for dev in selected_devices:
         pattern(dev, pattern_name)
+
+def select_fw_version(ver, fw_type_combo, releases):
+    # After selecting a version, we can list the types of firmware available for this version
+    types = list(releases[ver])
+    fw_type_combo.config(values=types)
+    fw_type_combo.current(0)
+
+def select_fw_type(_fw_type, flash_btn):
+    # Once the user has selected a type, the exact firmware file is known and can be flashed
+    flash_btn.config(state=tk.NORMAL)
+
+def tk_flash_firmware(devices, releases, version, fw_type):
+    selected_devices = get_selected_devices(devices)
+    if len(selected_devices) != 1:
+        info_popup('To flash select exactly 1 device.')
+        return
+    dev = selected_devices[0]
+    flash_firmware(dev, releases[version][fw_type])
+    # Disable device that we just flashed
+    disable_devices(devices)
+    restart_hint()
 
 if __name__ == "__main__":
     main()
