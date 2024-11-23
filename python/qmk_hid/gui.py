@@ -903,8 +903,15 @@ def selective_suspend_registry(pid, verbose, set=None):
 
 def perform_action(devices, action, value=None):
     if action == "bootloader":
-        # TODO: Disable checkbox of that device
+        # Disable checkbox of that device
+        for dev in devices:
+            for path, checkbox in device_checkboxes.items():
+                if path == dev['path']:
+                    checkbox.set(False)
+
         restart_hint()
+    if action == "off":
+        brightness_scale.set(0)
 
     action_map = {
         "bootloader": lambda dev: bootloader_jump(dev),
@@ -916,7 +923,6 @@ def perform_action(devices, action, value=None):
         "green": lambda dev: set_rgb_color(dev, GREEN_HUE, 255),
         "blue": lambda dev: set_rgb_color(dev, BLUE_HUE, 255),
         "white": lambda dev: set_rgb_color(dev, None, 0),
-        # TODO: Also window['-BRIGHTNESS-'].Update(0)
         "off": lambda dev: set_rgb_brightness(dev, 0),
         "brightness": lambda dev: set_white_rgb_brightness(dev, value),
         "rgb_effect": lambda dev: set_rgb_u8(dev, RGB_MATRIX_VALUE_EFFECT, value),
