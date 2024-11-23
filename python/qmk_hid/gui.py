@@ -13,6 +13,8 @@ if os.name == 'nt':
     from win32con import VK_NUMLOCK, VK_CAPITAL
     import winreg
 
+import webbrowser
+
 from qmk_hid import uf2conv
 
 # TODO:
@@ -173,6 +175,24 @@ def main():
         checkbox = ttk.Checkbutton(detected_devices_frame, text=device_info, variable=checkbox_var, style="TCheckbutton")
         checkbox.pack(anchor="w")
         device_checkboxes[dev['path']] = (checkbox_var, checkbox)
+
+    # Online Info
+    info_frame = ttk.LabelFrame(tab1, text="Online Info", style="TLabelframe")
+    info_frame.pack(fill="x", padx=10, pady=5)
+    infos = {
+        "VIA Web Interface": "https://keyboard.frame.work",
+        "Firmware Releases": "https://github.com/FrameworkComputer/qmk_firmware/releases",
+        "Tool Releases": "https://github.com/FrameworkComputer/qmk_hid/releases",
+        "Keyboard Hotkeys": "https://knowledgebase.frame.work/hotkeys-on-the-framework-laptop-16-keyboard-rkYIwFQPp",
+        "Macropad Layout": "https://knowledgebase.frame.work/default-keymap-for-the-rgb-macropad-rkBIgqmva",
+        "Numpad Layout": "https://knowledgebase.frame.work/default-keymap-for-the-numpad-rJZv44owa",
+    }
+    for (i, (text, url)) in enumerate(infos.items()):
+        # Organize in columns of three
+        row = int(i / 3)
+        column = i % 3
+        btn = ttk.Button(info_frame, text=text, command=lambda: webbrowser.open(url), style="TButton")
+        btn.grid(row=row, column=column)
 
     # Device Control Buttons
     device_control_frame = ttk.LabelFrame(tab1, text="Device Control", style="TLabelframe")
