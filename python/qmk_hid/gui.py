@@ -4,7 +4,6 @@ import sys
 import subprocess
 import time
 
-#import PySimpleGUI as sg
 import tkinter as tk
 from tkinter import ttk, messagebox
 
@@ -142,7 +141,7 @@ def get_numlock_state():
             # Ignore tool not found, just return None
             pass
 
-def tk_main():
+def main():
     devices = find_devs(show=False, verbose=False)
     # print("Found {} devices".format(len(devices)))
 
@@ -289,22 +288,8 @@ def update_numlock_state(state_var, refresh_btn=None, toggle_btn=None):
             toggle_btn.config(state=tk.NORMAL)
         state_var.set("On (Numbers)" if numlock_on else "Off (Arrows)")
 
-def main():
-    devices = find_devs(show=False, verbose=False)
-    # print("Found {} devices".format(len(devices)))
-
-    device_checkboxes = []
-    for dev in devices:
-        device_info = "{}\nSerial No: {}\nFW Version: {}\n".format(
-            dev['product_string'],
-            dev['serial_number'],
-            format_fw_ver(dev['release_number'])
-        )
-        checkbox = sg.Checkbox(device_info, default=True, key='-CHECKBOX-{}-'.format(dev['path']), enable_events=True)
-        device_checkboxes.append([checkbox])
-
-
-
+# Keeping until all features are implemented
+def main_sg():
     # Only in the pyinstaller bundle are the FW update binaries included
     if is_pyinstaller():
         releases = find_releases()
@@ -320,82 +305,6 @@ def main():
         ]
     else:
         bundled_update = []
-
-
-    layout = [
-        [sg.Text("Detected Devices")],
-    ] + device_checkboxes + [
-        [sg.HorizontalSeparator()],
-
-        [sg.Text("Bootloader")],
-        [sg.Button("Bootloader", k='-BOOTLOADER-')],
-        [sg.HorizontalSeparator()],
-    ] + bundled_update + [
-        [sg.Text("Backlight Brightness")],
-        # TODO: Get default from device
-        [sg.Slider((0, 255), orientation='h', default_value=120,
-                   k='-BRIGHTNESS-', enable_events=True)],
-        #[sg.Button("Enable Breathing", k='-ENABLE-BREATHING-')],
-        #[sg.Button("Disable Breathing", k='-DISABLE-BREATHING-')],
-
-        [sg.Text("RGB Color")],
-        [
-            sg.Button("Red", k='-RED-'),
-            sg.Button("Green", k='-GREEN-'),
-            sg.Button("Blue", k='-BLUE-'),
-            sg.Button("White", k='-WHITE-'),
-            sg.Button("Off", k='-OFF-'),
-        ],
-
-        [sg.Text("RGB Effect")],
-        [sg.Combo(RGB_EFFECTS, k='-RGB-EFFECT-', enable_events=True)],
-        [sg.HorizontalSeparator()],
-
-        [sg.Text("OS Numlock Setting")],
-        [sg.Text("State: "), sg.Text("", k='-NUMLOCK-STATE-'), sg.Push() ,sg.Button("Refresh", k='-NUMLOCK-REFRESH-', disabled=True)],
-        [sg.Button("Send Numlock Toggle", k='-NUMLOCK-TOGGLE-', disabled=True)],
-
-        [sg.HorizontalSeparator()],
-        [
-            sg.Column([
-                [sg.Text("BIOS Mode")],
-                [sg.Button("Enable", k='-BIOS-MODE-ENABLE-'), sg.Button("Disable", k='-BIOS-MODE-DISABLE-')],
-            ]),
-            sg.VSeperator(),
-            sg.Column([
-                [sg.Text("Factory Mode")],
-                [sg.Button("Enable", k='-FACTORY-MODE-ENABLE-'), sg.Button("Disable", k='-FACTORY-MODE-DISABLE-')],
-            ])
-        ],
-
-        [sg.HorizontalSeparator()],
-        [
-            sg.Column([
-                [sg.Text("Save/Erase Controls")],
-                [sg.Button("Save", k='-SAVE-'), sg.Button("Clear EEPROM", k='-CLEAR-EEPROM-')],
-                [sg.Text(f"Program Version: {PROGRAM_VERSION}")],
-            ]),
-            sg.VSeperator(),
-            sg.Column([
-                [sg.Text("Registry Controls")],
-                [sg.Button("Enable Selective Suspend", k='-ENABLE-SELECTIVESUSPEND-')],
-                [sg.Button("Disable Selective Suspend", k='-DISABLE-SELECTIVESUSPEND-')],
-                #[sg.Button("Reset Registry", k='-RESET-REGISTRY-')],
-            ])
-        ],
-    ]
-
-    icon_path = None
-    if os.name == 'nt':
-        ICON_NAME = 'logo_cropped_transparent_keyboard_48x48.ico'
-        icon_path = os.path.join(resource_path(), 'res', ICON_NAME) if is_pyinstaller() else os.path.join('res', ICON_NAME)
-    window = sg.Window("QMK Keyboard Control", layout, finalize=True, icon=icon_path)
-
-    selected_devices = []
-
-    # Optionally sync brightness between keyboards
-    # window.start_thread(lambda: backlight_watcher(window, devices), (THREAD_KEY, THREAD_EXITING))
-    window.start_thread(lambda: periodic_event(window), (THREAD_KEY, THREAD_EXITING))
 
     while True:
         event, values = window.read()
@@ -432,79 +341,12 @@ def main():
             restart_hint()
             window['-CHECKBOX-{}-'.format(dev['path'])].update(False, disabled=True)
 
-        if event == "-NUMLOCK-TOGGLE-":
-            if os.name == 'nt':
-                keybd_event(VK_NUMLOCK, 0x3A, 0x1, 0)
-                keybd_event(VK_NUMLOCK, 0x3A, 0x3, 0)
-            else:
-                out = subprocess.check_output(['numlockx', 'toggle'])
-
-        # Run commands on all selected devices
-        hint_shown = False
-        for dev in selected_devices:
-            if event == "-BOOTLOADER-":
-                bootloader_jump(dev)
-                window['-CHECKBOX-{}-'.format(dev['path'])].update(False, disabled=True)
-                if not hint_shown:
-                    restart_hint()
-                    hint_shown = True
-
-            if event == "-BIOS-MODE-ENABLE-":
-                bios_mode(dev, True)
-            if event == "-BIOS-MODE-DISABLE-":
-                bios_mode(dev, False)
-
-            if event == "-FACTORY-MODE-ENABLE-":
-                factory_mode(dev, True)
-            if event == "-FACTORY-MODE-DISABLE-":
-                factory_mode(dev, False)
-
-            if event == '-BRIGHTNESS-':
-                set_brightness(dev, int(values['-BRIGHTNESS-']))
-                set_rgb_brightness(dev, int(values['-BRIGHTNESS-']))
-
-            if event == '-RGB-EFFECT-':
-                effect = RGB_EFFECTS.index(values['-RGB-EFFECT-'])
-                set_rgb_u8(dev, RGB_MATRIX_VALUE_EFFECT, effect)
-                # TODO: Get effect
-
-            if event == '-RED-':
-                set_rgb_color(dev, RED_HUE, 255)
-            if event == '-GREEN-':
-                set_rgb_color(dev, GREEN_HUE, 255)
-            if event == '-BLUE-':
-                set_rgb_color(dev, BLUE_HUE, 255)
-            if event == '-WHITE-':
-                set_rgb_color(dev, None, 0)
-            if event == '-OFF-':
-                window['-BRIGHTNESS-'].Update(0)
-                set_rgb_brightness(dev, 0)
-
-            if event == '-SAVE-':
-                save(dev)
-
-            if event == '-CLEAR-EEPROM-':
-                eeprom_reset(dev)
-
-            if event == '-RESET-REGISTRY-':
-                # TODO: Implement completely deleting the relevant registry entries
-                pass
-            if event == '-ENABLE-SELECTIVESUSPEND-':
-                selective_suspend_registry(dev['product_id'], False, set=True)
-                if not hint_shown:
-                    replug_hint()
-                    hint_shown = True
-
-            if event == '-DISABLE-SELECTIVESUSPEND-':
-                selective_suspend_registry(dev['product_id'], False, set=False)
-                if not hint_shown:
-                    replug_hint()
-                    hint_shown = True
-
-        if event == sg.WIN_CLOSED:
-            break
-
-    window.close()
+def toggle_numlock():
+    if os.name == 'nt':
+        keybd_event(VK_NUMLOCK, 0x3A, 0x1, 0)
+        keybd_event(VK_NUMLOCK, 0x3A, 0x3, 0)
+    else:
+        out = subprocess.check_output(['numlockx', 'toggle'])
 
 
 def is_pyinstaller():
@@ -521,15 +363,7 @@ def resource_path():
 
     return base_path
 
-
-THREAD_KEY = '-THREAD-'
-THREAD_EXITING = '-THREAD EXITING-'
-def periodic_event(window):
-    while True:
-        window.write_event_value('-PERIODIC-EVENT-', None)
-        time.sleep(1)
-
-
+# TODO: Possibly use this
 def backlight_watcher(window, devs):
     prev_brightness = {}
     while True:

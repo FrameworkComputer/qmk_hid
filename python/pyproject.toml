@@ -35,7 +35,6 @@ Source = "https://github.com/FrameworkComputer/qmk_hid"
 
 [project.gui-scripts]
 qmk_gui = "qmk_hid.gui:main"
-qmk_tk = "qmk_hid.gui:tk_main"
 
 #[tool.hatch.version]
 #source = "vcs"
