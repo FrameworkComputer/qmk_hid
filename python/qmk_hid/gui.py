@@ -4,20 +4,24 @@ import sys
 import subprocess
 import time
 
-import PySimpleGUI as sg
+import tkinter as tk
+from tkinter import ttk, messagebox
+
 import hid
 if os.name == 'nt':
     from win32api import GetKeyState, keybd_event
     from win32con import VK_NUMLOCK, VK_CAPITAL
     import winreg
 
-import qmk_hid.uf2conv
+import webbrowser
+
+from qmk_hid import uf2conv
 
 # TODO:
 # - Get current values
 #   - Set sliders to current values
 
-PROGRAM_VERSION = "0.1.12"
+PROGRAM_VERSION = "0.2.0"
 FWK_VID = 0x32AC
 
 DEBUG_PRINT = False
@@ -128,6 +132,8 @@ def get_numlock_state():
         return GetKeyState(VK_NUMLOCK)
     else:
         try:
+            # TODO: This doesn't work on wayland
+            # In GNOME we can do gsettings set org.gnome.settings-daemon.peripherals.keyboard numlock-state on
             output = subprocess.run(['numlockx', 'status'], stdout=subprocess.PIPE).stdout
             if b'on' in output:
                 return True
@@ -137,231 +143,194 @@ def get_numlock_state():
             # Ignore tool not found, just return None
             pass
 
-
 def main():
     devices = find_devs(show=False, verbose=False)
     # print("Found {} devices".format(len(devices)))
 
-    device_checkboxes = []
+    root = tk.Tk()
+    root.title("QMK GUI")
+    ico = "logo_cropped_transparent_keyboard_48x48.ico"
+    res_path = resource_path()
+    root.iconbitmap(f"{res_path}/res/{ico}")
+
+    tabControl = ttk.Notebook(root)
+    tab1 = ttk.Frame(tabControl)
+    tab_fw_update = ttk.Frame(tabControl)
+    tab2 = ttk.Frame(tabControl)
+    tabControl.add(tab1, text="Home")
+    tabControl.add(tab_fw_update, text="Firmware Update")
+    tabControl.add(tab2, text="Advanced")
+    tabControl.pack(expand=1, fill="both")
+
+    # Device Checkboxes
+    detected_devices_frame = ttk.LabelFrame(tab1, text="Detected Devices", style="TLabelframe")
+    detected_devices_frame.pack(fill="x", padx=10, pady=5)
+
+    global device_checkboxes
+    device_checkboxes = {}
     for dev in devices:
         device_info = "{}\nSerial No: {}\nFW Version: {}\n".format(
             dev['product_string'],
             dev['serial_number'],
             format_fw_ver(dev['release_number'])
         )
-        checkbox = sg.Checkbox(device_info, default=True, key='-CHECKBOX-{}-'.format(dev['path']), enable_events=True)
-        device_checkboxes.append([checkbox])
+        checkbox_var = tk.BooleanVar(value=True)
+        checkbox = ttk.Checkbutton(detected_devices_frame, text=device_info, variable=checkbox_var, style="TCheckbutton")
+        checkbox.pack(anchor="w")
+        device_checkboxes[dev['path']] = (checkbox_var, checkbox)
 
+    # Online Info
+    info_frame = ttk.LabelFrame(tab1, text="Online Info", style="TLabelframe")
+    info_frame.pack(fill="x", padx=10, pady=5)
+    infos = {
+        "VIA Web Interface": "https://keyboard.frame.work",
+        "Firmware Releases": "https://github.com/FrameworkComputer/qmk_firmware/releases",
+        "Tool Releases": "https://github.com/FrameworkComputer/qmk_hid/releases",
+        "Keyboard Hotkeys": "https://knowledgebase.frame.work/hotkeys-on-the-framework-laptop-16-keyboard-rkYIwFQPp",
+        "Macropad Layout": "https://knowledgebase.frame.work/default-keymap-for-the-rgb-macropad-rkBIgqmva",
+        "Numpad Layout": "https://knowledgebase.frame.work/default-keymap-for-the-numpad-rJZv44owa",
+    }
+    for (i, (text, url)) in enumerate(infos.items()):
+        # Organize in columns of three
+        row = int(i / 3)
+        column = i % 3
+        btn = ttk.Button(info_frame, text=text, command=lambda: webbrowser.open(url), style="TButton")
+        btn.grid(row=row, column=column)
 
+    # Device Control Buttons
+    device_control_frame = ttk.LabelFrame(tab1, text="Device Control", style="TLabelframe")
+    device_control_frame.pack(fill="x", padx=10, pady=5)
+    control_buttons = {
+        "Bootloader": "bootloader",
+        "Save Changes": "save_changes",
+    }
+    for text, action in control_buttons.items():
+        ttk.Button(device_control_frame, text=text, command=lambda a=action: perform_action(devices, a), style="TButton").pack(side="left", padx=5, pady=5)
+
+    # Brightness Slider
+    brightness_frame = ttk.LabelFrame(tab1, text="Brightness", style="TLabelframe")
+    brightness_frame.pack(fill="x", padx=10, pady=5)
+    global brightness_scale
+    brightness_scale = tk.Scale(brightness_frame, from_=0, to=255, orient='horizontal', command=lambda value: perform_action(devices, 'brightness', value=int(value)))
+    brightness_scale.set(120)  # Default value
+    brightness_scale.pack(fill="x", padx=5, pady=5)
+
+    # RGB color
+    rgb_color_buttons = {
+        "Red": "red",
+        "Green": "green",
+        "Blue": "blue",
+        "White": "white",
+        "Off": "off",
+    }
+    btn_frame = ttk.Frame(brightness_frame)
+    btn_frame.pack(side=tk.TOP)
+    for text, action in rgb_color_buttons.items():
+        btn = ttk.Button(btn_frame, text=text, command=lambda a=action: perform_action(devices, a), style="TButton")
+        btn.pack(side="left", padx=5, pady=5)
+
+    # RGB Effect Combo Box
+    rgb_effect_label = tk.Label(brightness_frame, text="RGB Effect")
+    rgb_effect_label.pack(side=tk.LEFT, padx=5, pady=5)
+    rgb_effect_combo = ttk.Combobox(brightness_frame, values=RGB_EFFECTS, style="TCombobox", state="readonly")
+    rgb_effect_combo.pack(side=tk.LEFT, padx=5, pady=5)
+    rgb_effect_combo.bind("<<ComboboxSelected>>", lambda event: perform_action(devices, 'rgb_effect', value=RGB_EFFECTS.index(rgb_effect_combo.get())))
+
+    # White backlight keyboard
+    rgb_effect_label = tk.Label(brightness_frame, text="White Effect")
+    rgb_effect_label.pack(side=tk.LEFT, padx=5, pady=5)
+    ttk.Button(brightness_frame, text="Breathing", command=lambda a=action: perform_action(devices, "breathing_on"), style="TButton").pack(side="left", padx=5, pady=5)
+    ttk.Button(brightness_frame, text="None", command=lambda a=action: perform_action(devices, "breathing_off"), style="TButton").pack(side="left", padx=5, pady=5)
+
+    # Tab 2
+    # Advanced Device Control Buttons
+    eeprom_frame = ttk.LabelFrame(tab2, text="EEPROM", style="TLabelframe")
+    eeprom_frame.pack(fill="x", padx=5, pady=5)
+    tk.Label(eeprom_frame, text="Clear user configured settings").pack(side="top", padx=5, pady=5)
+    ttk.Button(eeprom_frame, text="Reset EEPROM", command=lambda: perform_action(devices, 'reset_eeprom'), style="TButton").pack(side="left", padx=5, pady=5)
+
+    bios_mode_frame = ttk.LabelFrame(tab2, text="BIOS Mode", style="TLabelframe")
+    bios_mode_frame.pack(fill="x", padx=5, pady=5)
+    tk.Label(bios_mode_frame, text="Disable function buttons, force F1-12").pack(side="top", padx=5, pady=5)
+    ttk.Button(bios_mode_frame, text="Enable", command=lambda: perform_action(devices, 'bios_mode', value=True), style="TButton").pack(side="left", padx=5, pady=5)
+    ttk.Button(bios_mode_frame, text="Disable", command=lambda: perform_action(devices, 'bios_mode', value=False), style="TButton").pack(side="left", padx=5, pady=5)
+
+    factory_mode_frame = ttk.LabelFrame(tab2, text="Factory Mode", style="TLabelframe")
+    factory_mode_frame.pack(fill="x", padx=5, pady=5)
+    tk.Label(factory_mode_frame, text="Ignore user configured keymap").pack(side="top", padx=5, pady=5)
+    ttk.Button(factory_mode_frame, text="Enable", command=lambda: perform_action(devices, 'factory_mode', value=True), style="TButton").pack(side="left", padx=5, pady=5)
+    ttk.Button(factory_mode_frame, text="Disable", command=lambda: perform_action(devices, 'factory_mode', value=False), style="TButton").pack(side="left", padx=5, pady=5)
+
+    # Unreliable on Linux
+    # Different versions of numlockx behave differently
+    # Xorg vs Wayland is different
+    if os.name == 'nt':
+        numlock_frame = ttk.LabelFrame(tab2, text="OS Numlock Setting", style="TLabelframe")
+        numlock_frame.pack(fill="x", padx=5, pady=5)
+        numlock_state_var = tk.StringVar()
+        numlock_state_var.set("State: Unknown")
+        numlock_state_label = tk.Label(numlock_frame, textvariable=numlock_state_var).pack(side="top", padx=5, pady=5)
+        refresh_btn = ttk.Button(numlock_frame, text="Refresh", command=lambda: update_numlock_state(numlock_state_var), style="TButton", state=tk.DISABLED)
+        refresh_btn.pack(side="left", padx=5, pady=5)
+        toggle_btn = ttk.Button(numlock_frame, text="Emulate numlock button press", command=lambda: toggle_numlock(), style="TButton", state=tk.DISABLED)
+        toggle_btn.pack(side="left", padx=5, pady=5)
+
+        update_numlock_state(numlock_state_var, refresh_btn, toggle_btn)
+
+    # TODO: Maybe hide behind secret shortcut
+    if os.name == 'nt':
+        registry_frame = ttk.LabelFrame(tab2, text="Windows Registry Tweaks", style="TLabelframe")
+        registry_frame.pack(fill="x", padx=5, pady=5)
+        tk.Label(registry_frame, text="Disabled. Only for very advanced debugging").pack(side="top", padx=5, pady=5)
+        ttk.Button(registry_frame, text="Enable Selective Suspend", command=lambda dev: selective_suspend_wrapper(dev, True), style="TButton", state=tk.DISABLED).pack(side="left", padx=5, pady=5)
+        toggle_btn = ttk.Button(registry_frame, text="Disable Selective Suspend", command=lambda dev: selective_suspend_wrapper(dev, False), style="TButton", state=tk.DISABLED).pack(side="left", padx=5, pady=5)
 
     # Only in the pyinstaller bundle are the FW update binaries included
-    if is_pyinstaller():
-        releases = find_releases()
+    releases = find_releases()
+    if not releases:
+        tk.Label(tab_fw_update, text="Cannot find firmware updates").pack(side="top", padx=5, pady=5)
+    else:
         versions = sorted(list(releases.keys()), reverse=True)
 
-        bundled_update = [
-            [sg.Text("Update Version")],
-            [sg.Text("Version"), sg.Push(), sg.Combo(versions, k='-VERSION-', enable_events=True, default_value=versions[0])],
-            [sg.Text("Type"), sg.Push(), sg.Combo(list(releases[versions[0]]), k='-TYPE-', enable_events=True)],
-            [sg.Text("Make sure the firmware is compatible with\nALL selected devices!")],
-            [sg.Button("Flash", k='-FLASH-', disabled=True)],
-            [sg.HorizontalSeparator()],
-        ]
+        flash_btn = None
+        fw_type_combo = None
+
+        fw_update_frame = ttk.LabelFrame(tab_fw_update, text="Update Firmware", style="TLabelframe")
+        fw_update_frame.pack(fill="x", padx=5, pady=5)
+        #tk.Label(fw_update_frame, text="Ignore user configured keymap").pack(side="top", padx=5, pady=5)
+        fw_ver_combo = ttk.Combobox(fw_update_frame, values=versions, style="TCombobox", state="readonly")
+        fw_ver_combo.pack(side=tk.LEFT, padx=5, pady=5)
+        fw_ver_combo.current(0)
+        fw_ver_combo.bind("<<ComboboxSelected>>", lambda event: select_fw_version(fw_ver_combo.get(), fw_type_combo, releases))
+        fw_type_combo = ttk.Combobox(fw_update_frame, values=list(releases[versions[0]]), style="TCombobox", state="readonly")
+        fw_type_combo.pack(side=tk.LEFT, padx=5, pady=5)
+        fw_type_combo.bind("<<ComboboxSelected>>", lambda event: select_fw_type(fw_type_combo.get(), flash_btn))
+        flash_btn = ttk.Button(fw_update_frame, text="Update", command=lambda: tk_flash_firmware(devices, releases, fw_ver_combo.get(), fw_type_combo.get()), state=tk.DISABLED, style="TButton")
+        flash_btn.pack(side="left", padx=5, pady=5)
+
+    program_ver_label = tk.Label(tab1, text="Program Version: 0.2.0")
+    program_ver_label.pack(side=tk.LEFT, padx=5, pady=5)
+
+    root.mainloop()
+
+def update_numlock_state(state_var, refresh_btn=None, toggle_btn=None):
+    numlock_on = get_numlock_state()
+    if numlock_on is None and os != 'nt':
+        state_var.set("Unknown, please install the 'numlockx' command")
     else:
-        bundled_update = []
+        if refresh_btn:
+            refresh_btn.config(state=tk.NORMAL)
+        if toggle_btn:
+            toggle_btn.config(state=tk.NORMAL)
+        state_var.set("On (Numbers)" if numlock_on else "Off (Arrows)")
 
 
-    layout = [
-        [sg.Text("Detected Devices")],
-    ] + device_checkboxes + [
-        [sg.HorizontalSeparator()],
-
-        [sg.Text("Bootloader")],
-        [sg.Button("Bootloader", k='-BOOTLOADER-')],
-        [sg.HorizontalSeparator()],
-    ] + bundled_update + [
-        [sg.Text("Backlight Brightness")],
-        # TODO: Get default from device
-        [sg.Slider((0, 255), orientation='h', default_value=120,
-                   k='-BRIGHTNESS-', enable_events=True)],
-        #[sg.Button("Enable Breathing", k='-ENABLE-BREATHING-')],
-        #[sg.Button("Disable Breathing", k='-DISABLE-BREATHING-')],
-
-        [sg.Text("RGB Color")],
-        [
-            sg.Button("Red", k='-RED-'),
-            sg.Button("Green", k='-GREEN-'),
-            sg.Button("Blue", k='-BLUE-'),
-            sg.Button("White", k='-WHITE-'),
-            sg.Button("Off", k='-OFF-'),
-        ],
-
-        [sg.Text("RGB Effect")],
-        [sg.Combo(RGB_EFFECTS, k='-RGB-EFFECT-', enable_events=True)],
-        [sg.HorizontalSeparator()],
-
-        [sg.Text("OS Numlock Setting")],
-        [sg.Text("State: "), sg.Text("", k='-NUMLOCK-STATE-'), sg.Push() ,sg.Button("Refresh", k='-NUMLOCK-REFRESH-', disabled=True)],
-        [sg.Button("Send Numlock Toggle", k='-NUMLOCK-TOGGLE-', disabled=True)],
-
-        [sg.HorizontalSeparator()],
-        [
-            sg.Column([
-                [sg.Text("BIOS Mode")],
-                [sg.Button("Enable", k='-BIOS-MODE-ENABLE-'), sg.Button("Disable", k='-BIOS-MODE-DISABLE-')],
-            ]),
-            sg.VSeperator(),
-            sg.Column([
-                [sg.Text("Factory Mode")],
-                [sg.Button("Enable", k='-FACTORY-MODE-ENABLE-'), sg.Button("Disable", k='-FACTORY-MODE-DISABLE-')],
-            ])
-        ],
-
-        [sg.HorizontalSeparator()],
-        [
-            sg.Column([
-                [sg.Text("Save/Erase Controls")],
-                [sg.Button("Save", k='-SAVE-'), sg.Button("Clear EEPROM", k='-CLEAR-EEPROM-')],
-                [sg.Text(f"Program Version: {PROGRAM_VERSION}")],
-            ]),
-            sg.VSeperator(),
-            sg.Column([
-                [sg.Text("Registry Controls")],
-                [sg.Button("Enable Selective Suspend", k='-ENABLE-SELECTIVESUSPEND-')],
-                [sg.Button("Disable Selective Suspend", k='-DISABLE-SELECTIVESUSPEND-')],
-                #[sg.Button("Reset Registry", k='-RESET-REGISTRY-')],
-            ])
-        ],
-    ]
-
-    icon_path = None
+def toggle_numlock():
     if os.name == 'nt':
-        ICON_NAME = 'logo_cropped_transparent_keyboard_48x48.ico'
-        icon_path = os.path.join(resource_path(), 'res', ICON_NAME) if is_pyinstaller() else os.path.join('res', ICON_NAME)
-    window = sg.Window("QMK Keyboard Control", layout, finalize=True, icon=icon_path)
-
-    selected_devices = []
-
-    # Optionally sync brightness between keyboards
-    # window.start_thread(lambda: backlight_watcher(window, devices), (THREAD_KEY, THREAD_EXITING))
-    window.start_thread(lambda: periodic_event(window), (THREAD_KEY, THREAD_EXITING))
-
-    while True:
-        numlock_on = get_numlock_state()
-        if numlock_on is None and os != 'nt':
-            window['-NUMLOCK-STATE-'].update("Unknown, please install the 'numlockx' command")
-        else:
-            window['-NUMLOCK-REFRESH-'].update(disabled=False)
-            window['-NUMLOCK-TOGGLE-'].update(disabled=False)
-            window['-NUMLOCK-STATE-'].update("On (Numbers)" if numlock_on else "Off (Arrows)")
-
-        event, values = window.read()
-        # print('Event', event)
-        # print('Values', values)
-
-        for dev in devices:
-            debug_print("Dev '{}' disconnected: {}".format(dev['product_string'], 'disconnected' in dev))
-            if 'disconnected' in dev:
-                window['-CHECKBOX-{}-'.format(dev['path'])].update(False, disabled=True)
-
-        selected_devices = [
-            dev for dev in devices if
-            values and values['-CHECKBOX-{}-'.format(dev['path'])]
-        ]
-        # print("Selected {} devices".format(len(selected_devices)))
-
-        # Updating firmware
-        if event == "-VERSION-":
-            # After selecting a version, we can list the types of firmware available for this version
-            types = list(releases[values['-VERSION-']])
-            window['-TYPE-'].update(value=types[0], values=types)
-        if event == "-TYPE-":
-            # Once the user has selected a type, the exact firmware file is known and can be flashed
-            window['-FLASH-'].update(disabled=False)
-        if event == "-FLASH-":
-            if len(selected_devices) != 1:
-                sg.Popup('To flash select exactly 1 device.')
-                continue
-            dev = selected_devices[0]
-            ver = values['-VERSION-']
-            t = values['-TYPE-']
-            flash_firmware(dev, releases[ver][t])
-            restart_hint()
-            window['-CHECKBOX-{}-'.format(dev['path'])].update(False, disabled=True)
-
-        if event == "-NUMLOCK-TOGGLE-":
-            if os.name == 'nt':
-                keybd_event(VK_NUMLOCK, 0x3A, 0x1, 0)
-                keybd_event(VK_NUMLOCK, 0x3A, 0x3, 0)
-            else:
-                out = subprocess.check_output(['numlockx', 'toggle'])
-
-        # Run commands on all selected devices
-        hint_shown = False
-        for dev in selected_devices:
-            if event == "-BOOTLOADER-":
-                bootloader_jump(dev)
-                window['-CHECKBOX-{}-'.format(dev['path'])].update(False, disabled=True)
-                if not hint_shown:
-                    restart_hint()
-                    hint_shown = True
-
-            if event == "-BIOS-MODE-ENABLE-":
-                bios_mode(dev, True)
-            if event == "-BIOS-MODE-DISABLE-":
-                bios_mode(dev, False)
-
-            if event == "-FACTORY-MODE-ENABLE-":
-                factory_mode(dev, True)
-            if event == "-FACTORY-MODE-DISABLE-":
-                factory_mode(dev, False)
-
-            if event == '-BRIGHTNESS-':
-                set_brightness(dev, int(values['-BRIGHTNESS-']))
-                set_rgb_brightness(dev, int(values['-BRIGHTNESS-']))
-
-            if event == '-RGB-EFFECT-':
-                effect = RGB_EFFECTS.index(values['-RGB-EFFECT-'])
-                set_rgb_u8(dev, RGB_MATRIX_VALUE_EFFECT, effect)
-                # TODO: Get effect
-
-            if event == '-RED-':
-                set_rgb_color(dev, RED_HUE, 255)
-            if event == '-GREEN-':
-                set_rgb_color(dev, GREEN_HUE, 255)
-            if event == '-BLUE-':
-                set_rgb_color(dev, BLUE_HUE, 255)
-            if event == '-WHITE-':
-                set_rgb_color(dev, None, 0)
-            if event == '-OFF-':
-                window['-BRIGHTNESS-'].Update(0)
-                set_rgb_brightness(dev, 0)
-
-            if event == '-SAVE-':
-                save(dev)
-
-            if event == '-CLEAR-EEPROM-':
-                eeprom_reset(dev)
-
-            if event == '-RESET-REGISTRY-':
-                # TODO: Implement completely deleting the relevant registry entries
-                pass
-            if event == '-ENABLE-SELECTIVESUSPEND-':
-                selective_suspend_registry(dev['product_id'], False, set=True)
-                if not hint_shown:
-                    replug_hint()
-                    hint_shown = True
-
-            if event == '-DISABLE-SELECTIVESUSPEND-':
-                selective_suspend_registry(dev['product_id'], False, set=False)
-                if not hint_shown:
-                    replug_hint()
-                    hint_shown = True
-
-        if event == sg.WIN_CLOSED:
-            break
-
-    window.close()
+        keybd_event(VK_NUMLOCK, 0x3A, 0x1, 0)
+        keybd_event(VK_NUMLOCK, 0x3A, 0x3, 0)
+    else:
+        out = subprocess.check_output(['numlockx', 'toggle'])
 
 
 def is_pyinstaller():
@@ -378,15 +347,7 @@ def resource_path():
 
     return base_path
 
-
-THREAD_KEY = '-THREAD-'
-THREAD_EXITING = '-THREAD EXITING-'
-def periodic_event(window):
-    while True:
-        window.write_event_value('-PERIODIC-EVENT-', None)
-        time.sleep(1)
-
-
+# TODO: Possibly use this
 def backlight_watcher(window, devs):
     prev_brightness = {}
     while True:
@@ -445,9 +406,13 @@ def find_releases():
     from os.path import isfile, join
     import re
 
-    res_path = resource_path()
-    versions = listdir(os.path.join(res_path, "releases"))
     releases = {}
+    res_path = resource_path()
+    try:
+        versions = listdir(os.path.join(res_path, "releases"))
+    except FileNotFoundError:
+        return releases
+
     for version in versions:
         path = join(res_path, "releases", version)
         releases[version] = {}
@@ -544,12 +509,8 @@ def send_message(dev, message_id, msg, out_len):
         out_data = h.read(out_len+3)
         return out_data
     except (IOError, OSError) as ex:
-        dev['disconnected'] = True
+        disable_devices([dev])
         debug_print("Error ({}): ".format(dev['path']), ex)
-        # Doesn't actually exit the process, pysimplegui catches it
-        # But it avoids the return value being used
-        # TODO: Get rid of this ugly hack and properly make the caller handle the failure
-        sys.exit(1)
 
 def set_keyboard_value(dev, value, number):
     msg = [value, number]
@@ -620,6 +581,14 @@ def set_rgb_brightness(dev, brightness):
 def set_brightness(dev, brightness):
     set_backlight(dev, BACKLIGHT_VALUE_BRIGHTNESS, brightness)
 
+def set_white_effect(dev, breathing_on):
+    set_backlight(dev, BACKLIGHT_VALUE_EFFECT, breathing_on)
+
+# Set both
+def set_white_rgb_brightness(dev, brightness):
+    set_brightness(dev, brightness)
+    set_rgb_brightness(dev, brightness)
+
 
 def set_rgb_color(dev, hue, saturation):
     (cur_hue, cur_sat) = get_rgb_color(dev)
@@ -630,15 +599,30 @@ def set_rgb_color(dev, hue, saturation):
 
 
 def restart_hint():
-    sg.Popup('After updating a device, \nrestart the application\nto reload the connections.')
+    parent = tk.Tk()
+    parent.title("Restart Application")
+    message = tk.Message(parent, text="After updating a device,\n restart the application to reload the connections.", width=800)
+    message.pack(padx=20, pady=20)
+    parent.mainloop()
+
+def info_popup(msg):
+    parent = tk.Tk()
+    parent.title("Info")
+    message = tk.Message(parent, text="msg", width=800)
+    message.pack(padx=20, pady=20)
+    parent.mainloop()
 
 
 def replug_hint():
-    sg.Popup('After changing selective suspend setting, make sure to unplug and re-plug the device to apply the settings.')
+    parent = tk.Tk()
+    parent.title("Replug Keyboard")
+    message = tk.Message(parent, text="After changing selective suspend setting, make sure to unplug and re-plug the device to apply the settings.", width=800)
+    message.pack(padx=20, pady=20)
+    parent.mainloop()
 
 
 def flash_firmware(dev, fw_path):
-    print(f"Flashing {fw_path}")
+    print(f"Flashing {fw_path} onto {dev['path']}")
 
     # First jump to bootloader
     drives = uf2conv.list_drives()
@@ -671,6 +655,14 @@ def flash_firmware(dev, fw_path):
         uf2conv.write_file(d + "/NEW.UF2", fw_buf)
 
     print("Flashing finished")
+
+def selective_suspend_wrapper(dev, enable):
+    if enable:
+        selective_suspend_registry(dev['product_id'], False, set=True)
+        replug_hint()
+    else:
+        selective_suspend_registry(dev['product_id'], False, set=False)
+        replug_hint()
 
 
 def selective_suspend_registry(pid, verbose, set=None):
@@ -735,6 +727,72 @@ def selective_suspend_registry(pid, verbose, set=None):
                             print(f'    {sValue} (Type: f{keyType})')
             except EnvironmentError as e:
                 raise e
+
+def disable_devices(devices):
+    # Disable checkbox of selected devices
+    for dev in devices:
+        for path, (checkbox_var, checkbox) in device_checkboxes.items():
+            if path == dev['path']:
+                checkbox_var.set(False)
+                checkbox.config(state=tk.DISABLED)
+
+def perform_action(devices, action, value=None):
+    if action == "bootloader":
+        disable_devices(devices)
+
+        restart_hint()
+    if action == "off":
+        brightness_scale.set(0)
+
+    action_map = {
+        "bootloader": lambda dev: bootloader_jump(dev),
+        "save_changes": save,
+        "eeprom_reset": eeprom_reset,
+        "bios_mode": lambda dev: bios_mode(dev, value),
+        "factory_mode": lambda dev: factory_mode(dev, value),
+        "red": lambda dev: set_rgb_color(dev, RED_HUE, 255),
+        "green": lambda dev: set_rgb_color(dev, GREEN_HUE, 255),
+        "blue": lambda dev: set_rgb_color(dev, BLUE_HUE, 255),
+        "white": lambda dev: set_rgb_color(dev, None, 0),
+        "off": lambda dev: set_rgb_brightness(dev, 0),
+        "breathing_on": lambda dev: set_white_effect(dev, True),
+        "breathing_off": lambda dev: set_white_effect(dev, False),
+        "brightness": lambda dev: set_white_rgb_brightness(dev, value),
+        "rgb_effect": lambda dev: set_rgb_u8(dev, RGB_MATRIX_VALUE_EFFECT, value),
+    }
+    selected_devices = get_selected_devices(devices)
+    for dev in selected_devices:
+        if action in action_map:
+            action_map[action](dev)
+
+def get_selected_devices(devices):
+    return [dev for dev in devices if dev['path'] in device_checkboxes and device_checkboxes[dev['path']][0].get()]
+
+def set_pattern(devices, pattern_name):
+    selected_devices = get_selected_devices(devices)
+    for dev in selected_devices:
+        pattern(dev, pattern_name)
+
+def select_fw_version(ver, fw_type_combo, releases):
+    # After selecting a version, we can list the types of firmware available for this version
+    types = list(releases[ver])
+    fw_type_combo.config(values=types)
+    fw_type_combo.current(0)
+
+def select_fw_type(_fw_type, flash_btn):
+    # Once the user has selected a type, the exact firmware file is known and can be flashed
+    flash_btn.config(state=tk.NORMAL)
+
+def tk_flash_firmware(devices, releases, version, fw_type):
+    selected_devices = get_selected_devices(devices)
+    if len(selected_devices) != 1:
+        info_popup('To flash select exactly 1 device.')
+        return
+    dev = selected_devices[0]
+    flash_firmware(dev, releases[version][fw_type])
+    # Disable device that we just flashed
+    disable_devices(devices)
+    restart_hint()
 
 if __name__ == "__main__":
     main()
