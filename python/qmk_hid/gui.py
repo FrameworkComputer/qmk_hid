@@ -143,6 +143,9 @@ def get_numlock_state():
             # Ignore tool not found, just return None
             pass
 
+def open_browser_func(url):
+    return lambda: webbrowser.open(url)
+
 def main():
     devices = find_devs(show=False, verbose=False)
     # print("Found {} devices".format(len(devices)))
@@ -194,7 +197,7 @@ def main():
         # Organize in columns of three
         row = int(i / 3)
         column = i % 3
-        btn = ttk.Button(info_frame, text=text, command=lambda: webbrowser.open(url), style="TButton")
+        btn = ttk.Button(info_frame, text=text, command=open_browser_func(url), style="TButton")
         btn.grid(row=row, column=column)
 
     # Device Control Buttons
