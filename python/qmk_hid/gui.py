@@ -151,7 +151,8 @@ def main():
     root.title("QMK GUI")
     ico = "logo_cropped_transparent_keyboard_48x48.ico"
     res_path = resource_path()
-    root.iconbitmap(f"{res_path}/res/{ico}")
+    if os.name == 'nt':
+        root.iconbitmap(f"{res_path}/res/{ico}")
 
     tabControl = ttk.Notebook(root)
     tab1 = ttk.Frame(tabControl)
