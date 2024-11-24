@@ -194,7 +194,7 @@ def main():
         # Organize in columns of three
         row = int(i / 3)
         column = i % 3
-        btn = ttk.Button(info_frame, text=text, command=lambda: webbrowser.open(url), style="TButton")
+        btn = ttk.Button(info_frame, text=text, command=lambda url=url: open_browser_func(url), style="TButton")
         btn.grid(row=row, column=column)
 
     # Device Control Buttons
