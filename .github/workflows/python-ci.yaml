@@ -1,6 +1,8 @@
 name: Python CI
 on:
   push:
+  paths:
+    - 'python/**'
 
 jobs:
   build-gui:
