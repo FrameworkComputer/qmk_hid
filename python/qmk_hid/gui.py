@@ -57,7 +57,7 @@ def main():
     # print("Found {} devices".format(len(devices)))
 
     root = tk.Tk()
-    root.title("QMK GUI")
+    root.title("QMK Keyboard Control")
     ico = "logo_cropped_transparent_keyboard_48x48.ico"
     res_path = resource_path()
     if os.name == 'nt':
