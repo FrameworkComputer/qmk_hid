@@ -45,13 +45,14 @@ def flash_firmware(dev, fw_path):
 
 # Example return value
 # {
-#   '0.1.7': {
-#     'ansi': 'framework_ansi_default_v0.1.7.uf2',
-#     'gridpad': 'framework_gridpad_default_v0.1.7.uf2'
+#   '0.2.9': {
+#     'ansi_default': 'framework_ansi_default_v0.2.9.uf2',
+#     'ansi_copilot': 'framework_ansi_copilot_v0.2.9.uf2',
+#     'gridpad_default': 'framework_gridpad_default_v0.2.9.uf2'
 #   },
 #   '0.1.8': {
-#     'ansi': 'framework_ansi_default.uf2',
-#     'gridpad': 'framework_gridpad_default.uf2',
+#     'ansi_default': 'framework_ansi_default.uf2',
+#     'gridpad_default': 'framework_gridpad_default.uf2',
 #   }
 # }
 def find_releases(res_path, filename_format):

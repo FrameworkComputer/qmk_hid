@@ -196,7 +196,7 @@ def main():
         toggle_btn = ttk.Button(registry_frame, text="Disable Selective Suspend", command=lambda dev: selective_suspend_wrapper(dev, False), style="TButton", state=tk.DISABLED).pack(side="left", padx=5, pady=5)
 
     # Only in the pyinstaller bundle are the FW update binaries included
-    releases = firmware_update.find_releases(resource_path(), r'framework_(.*)_default.*\.uf2')
+    releases = firmware_update.find_releases(resource_path(), r'framework_([a-z]*_.[a-z]*)\.uf2')
     if not releases:
         tk.Label(tab_fw_update, text="Cannot find firmware updates").pack(side="top", padx=5, pady=5)
     else:
