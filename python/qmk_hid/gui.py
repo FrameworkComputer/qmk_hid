@@ -70,7 +70,7 @@ def update_type(t):
     #    print("Not bundled executable. No releases available.")
     #    sys.exit(1)
 
-    releases = find_releases()
+    releases = firmware_update.find_releases(resource_path(), r'framework_(.*)_default.*\.uf2')
     versions = sorted(list(releases.keys()), reverse=True)
     latest_version = versions[0]
     firmware_path = releases[latest_version][t]
