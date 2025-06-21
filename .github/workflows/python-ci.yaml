@@ -1,8 +1,9 @@
 name: Python CI
 on:
   push:
-  paths:
-    - 'python/**'
+    paths:
+      - 'python/**'
+      - '.github/workflows/python-ci.yaml'
 
 jobs:
   build-gui:
