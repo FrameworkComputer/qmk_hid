@@ -158,8 +158,10 @@ def update_type(t):
     if t == 'copilot':
         layout = 'copilot'
         t = 'ansi'
+        is_copilot = True
     else:
         layout = 'default'
+        is_copilot = False
 
     releases = find_releases(layout)
     versions = sorted(list(releases.keys()), reverse=True)
@@ -184,8 +186,14 @@ def update_type(t):
     print("Flashing firmware")
     flash_firmware(filtered_devs[0], firmware_path)
 
-    print("Waiting 2 seconds for the keyboard to restart")
-    time.sleep(2)
+    print("Waiting 10 seconds for the keyboard to restart")
+    time.sleep(10)
+
+    if is_copilot:
+        print("Clearing keyboard settings for copilot keyboard")
+        devices = find_devs(show=False, verbose=False)
+        filtered_devs = [dev for dev in devices if dev['product_id'] == pid]
+        eeprom_reset(filtered_devs[0])
 
 
 def main():
