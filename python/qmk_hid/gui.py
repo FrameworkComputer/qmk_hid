@@ -4,7 +4,6 @@ import sys
 import subprocess
 import time
 
-import PySimpleGUI as sg
 import hid
 if os.name == 'nt':
     from win32api import GetKeyState, keybd_event
@@ -786,4 +785,5 @@ if __name__ == "__main__":
             update_type(t)
             sys.exit(1)
 
+    import PySimpleGUI as sg
     main()
