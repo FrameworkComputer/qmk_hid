@@ -1,3 +1,2 @@
 hidapi==0.14.0.post2
-PySimpleGUI-4-foss==4.60.4.1
 pywin32; os_name == 'nt'
