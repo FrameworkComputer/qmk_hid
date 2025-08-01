@@ -140,6 +140,7 @@ def get_numlock_state():
 def update_type(t):
     types = {
         'ansi': 0x0012,
+        'copilot': 0x0030,
         'iso': 0x0018,
         'jis': 0x0019,
         'macropad': 0x0013,
@@ -786,7 +787,7 @@ def selective_suspend_registry(pid, verbose, set=None):
 if __name__ == "__main__":
     # If the script/executable has one of these in the filename,
     # It's a special script to just update that device
-    for t in ['ansi', 'iso', 'jis', 'macropad', 'numpad']:
+    for t in ['ansi', 'copilot', 'iso', 'jis', 'macropad', 'numpad']:
         if t in sys.argv[0]:
             update_type(t)
             sys.exit(1)
