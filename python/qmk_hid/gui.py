@@ -140,7 +140,6 @@ def get_numlock_state():
 def update_type(t):
     types = {
         'ansi': 0x0012,
-        'copilot': 0x0012,
         'iso': 0x0018,
         'jis': 0x0019,
         'macropad': 0x0013,
@@ -155,15 +154,7 @@ def update_type(t):
     #    print("Not bundled executable. No releases available.")
     #    sys.exit(1)
 
-    if t == 'copilot':
-        layout = 'copilot'
-        t = 'ansi'
-        is_copilot = True
-    else:
-        layout = 'default'
-        is_copilot = False
-
-    releases = find_releases(layout)
+    releases = find_releases()
     versions = sorted(list(releases.keys()), reverse=True)
     latest_version = versions[0]
     firmware_path = releases[latest_version][t]
@@ -189,7 +180,7 @@ def update_type(t):
     print("Waiting 10 seconds for the keyboard to restart")
     time.sleep(10)
 
-    if is_copilot:
+    if t == 'copilot':
         print("Clearing keyboard settings for copilot keyboard")
         devices = find_devs(show=False, verbose=False)
         filtered_devs = [dev for dev in devices if dev['product_id'] == pid]
@@ -497,7 +488,7 @@ def backlight_watcher(window, devs):
 #     'gridpad': 'framework_gridpad_default.uf2',
 #   }
 # }
-def find_releases(layout):
+def find_releases():
     from os import listdir
     from os.path import isfile, join
     import re
@@ -511,9 +502,10 @@ def find_releases(layout):
         for filename in listdir(path):
             if not isfile(join(path, filename)):
                 continue
-            type_search = re.search(f'framework_(.*)_{layout}.*\.uf2', filename)
+            type_search = re.search('framework_(.*)_default.*\.uf2', filename)
             if not type_search:
                 # print(f"Filename '{filename}' not matching patten!")
+                sys.exit(1)
                 continue
             fw_type = type_search.group(1)
             releases[version][fw_type] = os.path.join(res_path, "releases", version, filename)
@@ -549,7 +541,7 @@ def find_devs(show, verbose):
                 print("Usage Page not matching")
             continue
         # Lots of false positives, so at least skip Framework false positives
-        if vid == FWK_VID and pid not in [0x12, 0x13, 0x14, 0x18, 0x19]:
+        if vid == FWK_VID and pid not in [0x12, 0x13, 0x14, 0x18, 0x19, 0x30]:
             if verbose:
                 print("False positive, device is not allowed")
             continue
@@ -794,7 +786,7 @@ def selective_suspend_registry(pid, verbose, set=None):
 if __name__ == "__main__":
     # If the script/executable has one of these in the filename,
     # It's a special script to just update that device
-    for t in ['copilot', 'ansi', 'iso', 'jis', 'macropad', 'numpad']:
+    for t in ['ansi', 'iso', 'jis', 'macropad', 'numpad']:
         if t in sys.argv[0]:
             update_type(t)
             sys.exit(1)
