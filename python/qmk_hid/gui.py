@@ -790,6 +790,7 @@ if __name__ == "__main__":
     for t in ['ansi', 'copilot', 'iso', 'jis', 'macropad', 'numpad']:
         if t in sys.argv[0]:
             update_type(t)
+            input("Finished! Press Enter to exit...")
             sys.exit(1)
 
     import PySimpleGUI as sg
