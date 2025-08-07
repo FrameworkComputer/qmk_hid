@@ -139,7 +139,7 @@ def get_numlock_state():
 
 def update_type(t):
     types = {
-        'ansi': [0x0012],
+        'ansi': [0x0012, 0x0030],
         'copilot': [0x0012, 0x0030],
         'iso': [0x0018],
         'jis': [0x0019],
@@ -176,13 +176,14 @@ def update_type(t):
             print("More than 1 USB device with VID 32AC PID {:04X} found. Aborting".format(pid))
             break
 
+        print("Found USB device with VID 32AC PID {:04X} found".format(pid))
         print("Flashing firmware")
         flash_firmware(filtered_devs[0], firmware_path)
 
         print("Waiting 10 seconds for the keyboard to restart")
         time.sleep(10)
 
-        if t == 'copilot':
+        if t == 'copilot' and pid == 0x0012:
             print("Clearing keyboard settings for copilot keyboard")
             devices = find_devs(show=False, verbose=False)
             filtered_devs = [dev for dev in devices if dev['product_id'] == pid]
