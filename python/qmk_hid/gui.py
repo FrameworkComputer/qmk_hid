@@ -186,7 +186,7 @@ def update_type(t):
         if t == 'copilot' and pid == 0x0012:
             print("Clearing keyboard settings for copilot keyboard")
             devices = find_devs(show=False, verbose=False)
-            filtered_devs = [dev for dev in devices if dev['product_id'] == pid]
+            filtered_devs = [dev for dev in devices if dev['product_id'] == 0x0030]
             eeprom_reset(filtered_devs[0])
         break
 
