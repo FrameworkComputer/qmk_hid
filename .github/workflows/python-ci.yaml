@@ -18,6 +18,7 @@ jobs:
         Invoke-WebRequest -Uri https://github.com/FrameworkComputer/qmk_firmware/releases/download/v0.3.1/framework_jis_default_v0.3.1.uf2 -OutFile releases\0.3.1\framework_jis_default.uf2
         Invoke-WebRequest -Uri https://github.com/FrameworkComputer/qmk_firmware/releases/download/v0.3.1/framework_numpad_default_v0.3.1.uf2 -OutFile releases\0.3.1\framework_numpad_default.uf2
         Invoke-WebRequest -Uri https://github.com/FrameworkComputer/qmk_firmware/releases/download/v0.3.1/framework_macropad_default_v0.3.1.uf2 -OutFile releases\0.3.1\framework_macropad_default.uf2
+        cp framework_copilot_default_v0.3.1.uf2 releases\0.3.1\framework_copilot_default.uf2
         mkdir releases\0.3.0
         Invoke-WebRequest -Uri https://github.com/FrameworkComputer/qmk_firmware/releases/download/v0.3.0/framework_ansi_default_v0.3.0.uf2 -OutFile releases\0.3.0\framework_ansi_default.uf2
         Invoke-WebRequest -Uri https://github.com/FrameworkComputer/qmk_firmware/releases/download/v0.3.0/framework_iso_default_v0.3.0.uf2 -OutFile releases\0.3.0\framework_iso_default.uf2
@@ -120,6 +121,15 @@ jobs:
         requirements: 'python/requirements.txt'
         upload_exe_with_name: 'framework_flash_ansi_v0.3.1.zip'
         options: --onefile, --name "framework_flash_ansi_v0.3.1", --add-data "releases;releases" --icon=res/logo_cropped_transparent_keyboard_48x48.ico --add-data 'res;res' -p python/qmk_hid
+
+    - name: Copilot Updater
+      uses: JohnAZoidberg/pyinstaller-action@dont-clean
+      with:
+        python_ver: '3.11'
+        spec: python/qmk_hid/gui.py
+        requirements: 'python/requirements.txt'
+        upload_exe_with_name: 'framework_flash_copilot_v0.3.1.zip'
+        options: --onefile, --name "framework_flash_copilot_v0.3.1", --add-data "releases;releases" --icon=res/logo_cropped_transparent_keyboard_48x48.ico --add-data 'res;res' -p python/qmk_hid
 
     - name: ISO Updater
       uses: JohnAZoidberg/pyinstaller-action@dont-clean
