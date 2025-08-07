@@ -188,6 +188,7 @@ def update_type(t):
             devices = find_devs(show=False, verbose=False)
             filtered_devs = [dev for dev in devices if dev['product_id'] == pid]
             eeprom_reset(filtered_devs[0])
+        break
 
 
 def main():
