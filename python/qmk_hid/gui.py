@@ -176,7 +176,7 @@ def update_type(t):
             print("More than 1 USB device with VID 32AC PID {:04X} found. Aborting".format(pid))
             break
 
-        print("Found USB device with VID 32AC PID {:04X} found".format(pid))
+        print("Found USB device with VID 32AC PID {:04X}".format(pid))
         print("Flashing firmware")
         flash_firmware(filtered_devs[0], firmware_path)
 
