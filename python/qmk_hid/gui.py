@@ -170,11 +170,11 @@ def update_type(t):
 
         if len(filtered_devs) == 0:
             print("No USB device with VID 32AC PID {:04X} found. Aborting".format(pid))
-            sys.exit(1)
+            continue
 
         if len(filtered_devs) > 1:
             print("More than 1 USB device with VID 32AC PID {:04X} found. Aborting".format(pid))
-            sys.exit(1)
+            break
 
         print("Flashing firmware")
         flash_firmware(filtered_devs[0], firmware_path)
@@ -507,8 +507,7 @@ def find_releases():
             type_search = re.search('framework_(.*)_default.*\.uf2', filename)
             if not type_search:
                 # print(f"Filename '{filename}' not matching patten!")
-                sys.exit(1)
-                continue
+                return []
             fw_type = type_search.group(1)
             releases[version][fw_type] = os.path.join(res_path, "releases", version, filename)
     return releases
