@@ -14,5 +14,14 @@ clap = { version = "4.5", features = ["derive"] }
 # See: https://github.com/ruabmbua/hidapi-rs/pull/158
 hidapi = { version = "=2.6.1" }
 
+[dependencies.windows]
+version = "0.61.3"
+features = [
+    "Devices",
+    "Devices_Enumeration",
+    "Devices_Lights",
+    "Devices_Lights_Effects",
+]
+
 [build-dependencies]
 static_vcruntime = "2.0"

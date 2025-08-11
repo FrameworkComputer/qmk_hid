@@ -1,4 +1,5 @@
 pub mod factory;
+pub mod lamparray;
 pub mod raw_hid;
 pub mod via;
 
