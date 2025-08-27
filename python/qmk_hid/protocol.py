@@ -124,7 +124,7 @@ def find_devs(show, verbose):
                 print("Usage Page not matching")
             continue
         # Lots of false positives, so at least skip Framework false positives
-        if vid == FWK_VID and pid not in [0x12, 0x13, 0x14, 0x18, 0x19]:
+        if vid == FWK_VID and pid not in [0x12, 0x13, 0x14, 0x18, 0x19, 0x30]:
             if verbose:
                 print("False positive, device is not allowed")
             continue
