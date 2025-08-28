@@ -462,5 +462,12 @@ def tk_flash_firmware(devices, releases, version, fw_type):
     disable_devices(devices)
     restart_hint()
 
+def open_browser_func(url):
+    # try to open url in new tab
+    success = webbrowser.open(url=url, new=2)
+    if not success:
+        info_popup("Failed to open webbrowser.")
+        return
+
 if __name__ == "__main__":
     main()
