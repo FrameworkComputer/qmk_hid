@@ -10,37 +10,27 @@ def dev_to_str(dev):
 def flash_firmware(dev, fw_path):
     print(f"Flashing {fw_path} onto {dev_to_str(dev)}")
 
-    # First jump to bootloader
-    drives = uf2conv.list_drives()
-    if not drives:
-        print("Jump to bootloader")
-        bootloader_jump(dev)
-
-    timeout = 10  # 5s
-    while not drives:
-        if timeout == 0:
-            print("Failed to find device in bootloader")
-            # TODO: Handle return value
-            return False
-        # Wait for it to appear
-        time.sleep(0.5)
-        timeout -= 1
-        drives = uf2conv.get_drives()
-
-
-    if len(drives) == 0:
-        print("No drive to deploy.")
-        return False
-
-    # Firmware is pretty small, can just fit it all into memory
+    # Validate the input before changing the device state.
     with open(fw_path, 'rb') as f:
         fw_buf = f.read()
+    uf2conv.validate_uf2(fw_buf)
 
-    for d in drives:
-        print("Flashing {} ({})".format(d, uf2conv.board_id(d)))
-        uf2conv.write_file(d + "/NEW.UF2", fw_buf)
-
-    print("Flashing finished")
+    # Only consider a drive that appears after the selected device reboots.
+    existing = set(uf2conv.get_drives())
+    bootloader_jump(dev)
+    for _ in range(10):
+        time.sleep(0.5)
+        drives = set(uf2conv.get_drives()) - existing
+        if len(drives) > 1:
+            raise RuntimeError("Multiple new UF2 drives found; cannot identify selected device")
+        if drives:
+            drive = drives.pop()
+            print("Flashing {} ({})".format(drive, uf2conv.board_id(drive)))
+            uf2conv.write_file(os.path.join(drive, "NEW.UF2"), fw_buf)
+            print("Flashing finished")
+            return True
+    print("Failed to find selected device in bootloader")
+    return False
 
 
 # Example return value
@@ -67,15 +57,17 @@ def find_releases(res_path, filename_format):
 
     for version in versions:
         path = join(res_path, "releases", version)
-        releases[version] = {}
+        if not os.path.isdir(path):
+            continue
+        files = {}
         for filename in listdir(path):
             if not isfile(join(path, filename)):
                 continue
-            type_search = re.search(filename_format, filename)
+            type_search = re.fullmatch(filename_format, filename)
             if not type_search:
-                print(f"Filename '{filename}' not matching patten!")
-                sys.exit(1)
                 continue
             fw_type = type_search.group(1)
-            releases[version][fw_type] = os.path.join(res_path, "releases", version, filename)
+            files[fw_type] = os.path.join(res_path, "releases", version, filename)
+        if files:
+            releases[version] = files
     return releases
