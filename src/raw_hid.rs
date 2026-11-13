@@ -1,19 +1,30 @@
-//! Interact with the raw HID interface of QMK firmware
-
+//! Interact with QMK raw HID.
+use crate::QmkError;
 use hidapi::HidDevice;
 
-use crate::QmkError;
-
-// ChibiOS won't respond if we send 32.
-// Currently I hardcoded it to ignore. But in upstream QMK/ChibiOS we have to send 33 bytes.
-// See raw_hid_send in tmk_core/protocol/chibios/usb_main.c
+/// Payload size, excluding HIDAPI's report ID.
 pub const RAW_HID_BUFFER_SIZE: usize = 32;
-
 pub const RAW_USAGE_PAGE: u16 = 0xFF60;
 pub const CONSOLE_USAGE_PAGE: u16 = 0xFF31;
-/// Generic Desktop
 pub const G_DESK_USAGE_PAGE: u16 = 0x01;
 pub const CONSUMER_USAGE_PAGE: u16 = 0x0C;
+
+fn encode_message(id: u8, msg: &[u8]) -> Result<[u8; 33], QmkError> {
+    if msg.len() > RAW_HID_BUFFER_SIZE - 1 {
+        return Err(QmkError);
+    }
+    let mut data = [0; RAW_HID_BUFFER_SIZE + 1];
+    data[1] = id;
+    data[2..2 + msg.len()].copy_from_slice(msg);
+    Ok(data)
+}
+
+fn decode_response(id: u8, buf: &[u8], len: usize) -> Result<Vec<u8>, QmkError> {
+    if len >= RAW_HID_BUFFER_SIZE || buf.len() <= len || buf[0] != id {
+        return Err(QmkError);
+    }
+    Ok(buf[1..len + 1].to_vec())
+}
 
 pub fn send_message(
     dev: &HidDevice,
@@ -21,66 +32,58 @@ pub fn send_message(
     msg: Option<&[u8]>,
     out_len: usize,
 ) -> Result<Vec<u8>, QmkError> {
-    // TODO: Why fill the rest with 0xFE? hidapitester uses 0x00
-    let mut data = vec![0xFE; RAW_HID_BUFFER_SIZE];
-    data[0] = 0x00; // NULL report ID
-    data[1] = message_id;
-
-    if let Some(msg) = msg {
-        assert!(msg.len() <= RAW_HID_BUFFER_SIZE);
-        let data_msg = &mut data[2..msg.len() + 2];
-        data_msg.copy_from_slice(msg);
+    if out_len >= RAW_HID_BUFFER_SIZE {
+        return Err(QmkError);
     }
-
-    //println!("Writing data: {:?}", data);
-    let res = dev.write(&data);
-    match res {
-        Ok(_size) => {
-            //println!("Written: {}", size);
-        }
-        Err(err) => {
-            println!("Write err: {err:?}");
-            return Err(QmkError);
-        }
-    };
-
-    // No response expected
+    let data = encode_message(message_id, msg.unwrap_or_default())?;
+    let size = dev.write(&data).map_err(|err| {
+        eprintln!("HID write failed: {err}");
+        QmkError
+    })?;
+    if size != data.len() {
+        return Err(QmkError);
+    }
     if out_len == 0 {
         return Ok(vec![]);
     }
+    let mut buf = [0; RAW_HID_BUFFER_SIZE];
+    let size = dev.read_timeout(&mut buf, 1000).map_err(|err| {
+        eprintln!("HID read failed: {err}");
+        QmkError
+    })?;
+    decode_response(message_id, &buf[..size], out_len)
+}
 
-    dev.set_blocking_mode(true).unwrap();
-
-    let mut buf: Vec<u8> = vec![0xFE; RAW_HID_BUFFER_SIZE];
-    let res = dev.read(buf.as_mut_slice());
-    match res {
-        Ok(_size) => {
-            //println!("Read: {}", size);
-            //println!("out_len: {}", out_len);
-            //println!("buf: {:?}", buf);
-            Ok(buf[1..out_len + 1].to_vec())
-        }
-        Err(err) => {
-            println!("Read err: {err:?}");
-            Err(QmkError)
+pub fn qmk_console(dev: &HidDevice) {
+    loop {
+        let mut buf = [0; RAW_HID_BUFFER_SIZE];
+        match dev.read(&mut buf) {
+            Ok(size) => print!("{}", String::from_utf8_lossy(&buf[..size])),
+            Err(err) => {
+                eprintln!("Read err: {err}");
+                break;
+            }
         }
     }
 }
 
-// TODO: I actually don't think this is QMK specific
-// Same protocol as https://www.pjrc.com/teensy/hid_listen.html
-pub fn qmk_console(dev: &HidDevice) {
-    loop {
-        let mut buf: Vec<u8> = vec![0xFE; RAW_HID_BUFFER_SIZE];
-        let res = dev.read(buf.as_mut_slice());
-        match res {
-            Ok(_size) => {
-                let string = String::from_utf8_lossy(&buf);
-                print!("{string}");
-            }
-            Err(err) => {
-                println!("Read err: {err:?}");
-            }
-        }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn full_payload_has_separate_report_id() {
+        let report = encode_message(7, &[42; 31]).unwrap();
+        assert_eq!(&report[..2], &[0, 7]);
+        assert_eq!(&report[2..], &[42; 31]);
+        assert!(encode_message(7, &[0; 32]).is_err());
+    }
+    #[test]
+    fn rejects_timeout_short_unhandled_and_stale_responses() {
+        assert!(decode_response(8, &[], 3).is_err());
+        assert!(decode_response(8, &[8, 3, 1], 3).is_err());
+        assert!(decode_response(8, &[255, 3, 1, 0], 3).is_err());
+        assert!(decode_response(8, &[7, 3, 1, 0], 3).is_err());
+        assert!(decode_response(8, &[8; 32], 32).is_err());
+        assert_eq!(decode_response(8, &[8, 3, 1, 42], 3).unwrap(), [3, 1, 42]);
     }
 }

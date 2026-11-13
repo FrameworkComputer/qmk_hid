@@ -87,7 +87,7 @@ pub fn set_keyboard_value(
 ) -> Result<(), QmkError> {
     assert!(number < (1 << 8)); // TODO: Support u32
     let msg = vec![value as u8, number as u8];
-    send_message(dev, ViaCommandId::SetKeyboardValue as u8, Some(&msg), 0)?;
+    send_message(dev, ViaCommandId::SetKeyboardValue as u8, Some(&msg), 1)?;
     Ok(())
 }
 
@@ -101,14 +101,14 @@ pub fn get_rgb_u8(dev: &HidDevice, value: u8) -> Result<u8, QmkError> {
 pub fn set_rgb_u8(dev: &HidDevice, value: u8, value_data: u8) -> Result<(), QmkError> {
     // data = [ command_id, channel_id, value_id, value_data ]
     let msg = vec![ViaChannelId::RgbMatrixChannel as u8, value, value_data];
-    send_message(dev, ViaCommandId::CustomSetValue as u8, Some(&msg), 0)?;
+    send_message(dev, ViaCommandId::CustomSetValue as u8, Some(&msg), 1)?;
     Ok(())
 }
 
 pub fn save_rgb(dev: &HidDevice) -> Result<(), QmkError> {
     // data = [ command_id, channel_id, value_id, value_data ]
     let msg = vec![ViaChannelId::RgbMatrixChannel as u8];
-    send_message(dev, ViaCommandId::CustomSave as u8, Some(&msg), 0)?;
+    send_message(dev, ViaCommandId::CustomSave as u8, Some(&msg), 1)?;
     Ok(())
 }
 
@@ -117,7 +117,7 @@ pub fn set_rgb_color(
     hue: Option<u8>,
     saturation: Option<u8>,
 ) -> Result<(), QmkError> {
-    let (cur_hue, cur_saturation) = get_rgb_color(dev).unwrap();
+    let (cur_hue, cur_saturation) = get_rgb_color(dev)?;
 
     let hue = hue.unwrap_or(cur_hue);
     let saturation = saturation.unwrap_or(cur_saturation);
@@ -128,7 +128,7 @@ pub fn set_rgb_color(
         hue,
         saturation,
     ];
-    send_message(dev, ViaCommandId::CustomSetValue as u8, Some(&msg), 0)?;
+    send_message(dev, ViaCommandId::CustomSetValue as u8, Some(&msg), 1)?;
 
     Ok(())
 }
@@ -150,14 +150,14 @@ pub fn get_backlight(dev: &HidDevice, value: u8) -> Result<u8, QmkError> {
 
 pub fn set_backlight(dev: &HidDevice, value: u8, value_data: u8) -> Result<(), QmkError> {
     let msg = vec![ViaChannelId::BacklightChannel as u8, value, value_data];
-    send_message(dev, ViaCommandId::CustomSetValue as u8, Some(&msg), 0)?;
+    send_message(dev, ViaCommandId::CustomSetValue as u8, Some(&msg), 1)?;
     Ok(())
 }
 
 pub fn save_backlight(dev: &HidDevice) -> Result<(), QmkError> {
     // data = [ command_id, channel_id, value_id, value_data ]
     let msg = vec![ViaChannelId::BacklightChannel as u8];
-    send_message(dev, ViaCommandId::CustomSave as u8, Some(&msg), 0)?;
+    send_message(dev, ViaCommandId::CustomSave as u8, Some(&msg), 1)?;
     Ok(())
 }
 
