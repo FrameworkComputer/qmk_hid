@@ -38,7 +38,7 @@ def format_fw_ver(fw_ver):
 
 def get_numlock_state():
     if os.name == 'nt':
-        return GetKeyState(VK_NUMLOCK)
+        return bool(GetKeyState(VK_NUMLOCK) & 1)
     else:
         try:
             # TODO: This doesn't work on wayland
@@ -121,7 +121,7 @@ def main():
     brightness_frame = ttk.LabelFrame(tab1, text="Brightness", style="TLabelframe")
     brightness_frame.pack(fill="x", padx=10, pady=5)
     global brightness_scale
-    brightness_scale = tk.Scale(brightness_frame, from_=0, to=255, orient='horizontal', command=lambda value: perform_action(devices, 'brightness', value=int(value)))
+    brightness_scale = tk.Scale(brightness_frame, from_=0, to=255, orient="horizontal")
     brightness_scale.set(120)  # Default value
     brightness_scale.pack(fill="x", padx=5, pady=5)
 
@@ -221,11 +221,12 @@ def main():
     program_ver_label = tk.Label(tab1, text=f"Program Version: {PROGRAM_VERSION}")
     program_ver_label.pack(side=tk.LEFT, padx=5, pady=5)
 
+    brightness_scale.config(command=lambda value: perform_action(devices, "brightness", value=int(value)))
     root.mainloop()
 
 def update_numlock_state(state_var, refresh_btn=None, toggle_btn=None):
     numlock_on = get_numlock_state()
-    if numlock_on is None and os != 'nt':
+    if numlock_on is None:
         state_var.set("Unknown, please install the 'numlockx' command")
     else:
         if refresh_btn:
@@ -405,17 +406,13 @@ def disable_devices(devices):
                 checkbox.config(state=tk.DISABLED)
 
 def perform_action(devices, action, value=None):
-    if action == "bootloader":
-        disable_devices(devices)
-        restart_hint()
-
     if action == "off":
         brightness_scale.set(0)
 
     action_map = {
         "bootloader": lambda dev: bootloader_jump(dev),
         "save_changes": save,
-        "eeprom_reset": eeprom_reset,
+        "reset_eeprom": eeprom_reset,
         "bios_mode": lambda dev: bios_mode(dev, value),
         "factory_mode": lambda dev: factory_mode(dev, value),
         "red": lambda dev: set_rgb_color(dev, RED_HUE, 255),
@@ -431,7 +428,14 @@ def perform_action(devices, action, value=None):
     selected_devices = get_selected_devices(devices)
     for dev in selected_devices:
         if action in action_map:
-            action_map[action](dev)
+            try:
+                action_map[action](dev)
+            except (OSError, ValueError) as exc:
+                disable_devices([dev])
+                messagebox.showerror("Device error", str(exc))
+    if action == "bootloader" and selected_devices:
+        disable_devices(selected_devices)
+        restart_hint()
 
 def get_selected_devices(devices):
     return [dev for dev in devices if dev['path'] in device_checkboxes and device_checkboxes[dev['path']][0].get()]
@@ -439,7 +443,7 @@ def get_selected_devices(devices):
 def set_pattern(devices, pattern_name):
     selected_devices = get_selected_devices(devices)
     for dev in selected_devices:
-        pattern(dev, pattern_name)
+        set_rgb_u8(dev, RGB_MATRIX_VALUE_EFFECT, RGB_EFFECTS.index(pattern_name))
 
 def select_fw_version(ver, fw_type_combo, releases):
     # After selecting a version, we can list the types of firmware available for this version
@@ -457,10 +461,16 @@ def tk_flash_firmware(devices, releases, version, fw_type):
         info_popup('To flash select exactly 1 device.')
         return
     dev = selected_devices[0]
-    firmware_update.flash_firmware(dev, releases[version][fw_type])
-    # Disable device that we just flashed
-    disable_devices(devices)
-    restart_hint()
+    try:
+        success = firmware_update.flash_firmware(dev, releases[version][fw_type])
+    except (OSError, ValueError, RuntimeError) as exc:
+        messagebox.showerror("Firmware update failed", str(exc))
+        return
+    if success:
+        disable_devices([dev])
+        restart_hint()
+    else:
+        messagebox.showerror("Firmware update failed", "Selected device did not appear in bootloader.")
 
 if __name__ == "__main__":
     main()
