@@ -30,6 +30,7 @@ pub enum ViaCommandId {
     //Unhandled                       = 0xFF,
 }
 
+#[derive(Clone, Copy)]
 pub enum ViaKeyboardValueId {
     Uptime = 0x01,
     LayoutOptions = 0x02,
@@ -85,10 +86,21 @@ pub fn set_keyboard_value(
     value: ViaKeyboardValueId,
     number: u32,
 ) -> Result<(), QmkError> {
-    assert!(number < (1 << 8)); // TODO: Support u32
-    let msg = vec![value as u8, number as u8];
+    let msg = keyboard_value_message(value, number)?;
     send_message(dev, ViaCommandId::SetKeyboardValue as u8, Some(&msg), 1)?;
     Ok(())
+}
+
+fn keyboard_value_message(value: ViaKeyboardValueId, number: u32) -> Result<Vec<u8>, QmkError> {
+    let mut msg = vec![value as u8];
+    match value {
+        ViaKeyboardValueId::LayoutOptions => msg.extend_from_slice(&number.to_be_bytes()),
+        ViaKeyboardValueId::DeviceIndication => {
+            msg.push(u8::try_from(number).map_err(|_| QmkError)?);
+        }
+        _ => return Err(QmkError),
+    }
+    Ok(msg)
 }
 
 pub fn get_rgb_u8(dev: &HidDevice, value: u8) -> Result<u8, QmkError> {
@@ -171,4 +183,23 @@ pub fn bootloader_jump(dev: &HidDevice) -> Result<(), QmkError> {
     let output = send_message(dev, ViaCommandId::BootloaderJump as u8, None, 0)?;
     debug_assert_eq!(output.len(), 0);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn keyboard_values_use_their_firmware_wire_width() {
+        assert_eq!(
+            keyboard_value_message(ViaKeyboardValueId::LayoutOptions, 0x12345678).unwrap(),
+            [2, 0x12, 0x34, 0x56, 0x78]
+        );
+        assert_eq!(
+            keyboard_value_message(ViaKeyboardValueId::DeviceIndication, 1).unwrap(),
+            [5, 1]
+        );
+        assert!(keyboard_value_message(ViaKeyboardValueId::DeviceIndication, 256).is_err());
+        assert!(keyboard_value_message(ViaKeyboardValueId::Uptime, 0).is_err());
+    }
 }
