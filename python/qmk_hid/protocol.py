@@ -1,5 +1,4 @@
 import os
-import sys
 
 import hid
 
@@ -95,6 +94,10 @@ RGB_EFFECTS = [
     "SOLID_MULTISPLASH",
 ]
 
+def format_fw_ver(fw_ver):
+    return f"{fw_ver >> 8}.{(fw_ver >> 4) & 0xF}.{fw_ver & 0xF}"
+
+
 def find_devs(show, verbose):
     if verbose:
         show = True
@@ -114,12 +117,13 @@ def find_devs(show, verbose):
                 print("Vendor ID not matching")
             continue
 
-        if interface != QMK_INTERFACE:
+        usage_page = device_dict.get('usage_page', 0)
+        if usage_page != RAW_USAGE_PAGE and (usage_page != 0 or interface != QMK_INTERFACE):
             if verbose:
                 print("Interface not matching")
             continue
         # For some reason on Linux it'll always show usage_page==0
-        if os.name == 'nt' and device_dict['usage_page'] not in [RAW_USAGE_PAGE, CONSOLE_USAGE_PAGE]:
+        if os.name == 'nt' and usage_page != RAW_USAGE_PAGE:
             if verbose:
                 print("Usage Page not matching")
             continue
@@ -131,12 +135,11 @@ def find_devs(show, verbose):
 
         fw_ver = device_dict["release_number"]
 
-        if (os.name == 'nt' and device_dict['usage_page'] == RAW_USAGE_PAGE) or verbose:
-            if show:
-                print(f"Manufacturer: {manufacturer}")
-                print(f"Product:      {product}")
-                print("FW Version:   {}".format(format_fw_ver(fw_ver)))
-                print(f"Serial No:    {sn}")
+        if show:
+            print(f"Manufacturer: {manufacturer}")
+            print(f"Product:      {product}")
+            print("FW Version:   {}".format(format_fw_ver(fw_ver)))
+            print(f"Serial No:    {sn}")
 
             if verbose:
                 print(f"Path:         {path}")
@@ -151,32 +154,38 @@ def find_devs(show, verbose):
 
 
 def send_message(dev, message_id, msg, out_len):
-    data = [0xFE] * RAW_HID_BUFFER_SIZE
-    data[0] = 0x00 # NULL report ID
-    data[1] = message_id
-
+    # hidapi requires a report ID byte in addition to the 32-byte report.
+    data = [0x00, message_id] + [0xFE] * (RAW_HID_BUFFER_SIZE - 1)
     if msg:
-        if len(msg) > RAW_HID_BUFFER_SIZE-2:
-            print("Message too big. BUG. Please report")
-            sys.exit(1)
-        for i, x in enumerate(msg):
-            data[2+i] = x
+        if len(msg) > RAW_HID_BUFFER_SIZE - 1:
+            raise ValueError("Message exceeds the raw HID report size")
+        data[2:2 + len(msg)] = msg
+    if not 0 <= out_len <= RAW_HID_BUFFER_SIZE - 3:
+        raise ValueError("Invalid response length")
 
+    h = hid.device()
     try:
-        # TODO: Do this somewhere outside
-        h = hid.device()
         h.open_path(dev['path'])
-        #h.set_nonblocking(0)
-        h.write(data)
-
-        if out_len == 0:
+        if h.write(data) != len(data):
+            raise OSError("Incomplete HID write")
+        # VIA echoes setters too. Wait for the acknowledgement before closing
+        # the handle, so the USB transfer completes before the next command.
+        if out_len == 0 and message_id in (BOOTLOADER_JUMP, EEPROM_RESET):
             return None
+        output = h.read(RAW_HID_BUFFER_SIZE, 1000)
+        if not output:
+            raise TimeoutError("Timed out waiting for HID response")
+        if output[0] == 0xFF:
+            return None  # VIA command unsupported by this device.
+        prefix = list(msg or [])[:2]
+        if len(output) < max(out_len + 3, 1 + len(prefix)):
+            raise OSError("Incomplete HID response")
+        if output[0] != message_id or output[1:1 + len(prefix)] != prefix:
+            raise OSError("Unexpected HID response")
+        return output if out_len else None
+    finally:
+        h.close()
 
-        out_data = h.read(out_len+3)
-        return out_data
-    except (IOError, OSError) as ex:
-        disable_devices([dev])
-        debug_print("Error ({}): ".format(dev['path']), ex)
 
 def set_keyboard_value(dev, value, number):
     msg = [value, number]
@@ -190,21 +199,19 @@ def set_rgb_u8(dev, value, value_data):
 def get_rgb_u8(dev, value):
     msg = [CHANNEL_RGB_MATRIX, value]
     output = send_message(dev, CUSTOM_GET_VALUE, msg, 1)
-    if output[0] == 255: # Not RGB
-        return None
-    return output[3]
+    return None if output is None else output[3]
 
 # Returns (hue, saturation)
 def get_rgb_color(dev):
     msg = [CHANNEL_RGB_MATRIX, RGB_MATRIX_VALUE_COLOR]
     output = send_message(dev, CUSTOM_GET_VALUE, msg, 2)
-    return (output[3], output[4])
+    return None if output is None else (output[3], output[4])
 
 # Returns brightness level: x/255
 def get_backlight(dev, value):
     msg = [CHANNEL_BACKLIGHT, value]
     output = send_message(dev, CUSTOM_GET_VALUE, msg, 1)
-    return output[3]
+    return None if output is None else output[3]
 
 def set_backlight(dev, value, value_data):
     msg = [CHANNEL_BACKLIGHT, value, value_data]
@@ -257,9 +264,11 @@ def set_white_rgb_brightness(dev, brightness):
 
 
 def set_rgb_color(dev, hue, saturation):
-    (cur_hue, cur_sat) = get_rgb_color(dev)
     if hue is None:
-        hue = cur_hue
+        color = get_rgb_color(dev)
+        if color is None:
+            return
+        hue = color[0]
     msg = [CHANNEL_RGB_MATRIX, RGB_MATRIX_VALUE_COLOR, hue, saturation]
     send_message(dev, CUSTOM_SET_VALUE, msg, 0)
 
