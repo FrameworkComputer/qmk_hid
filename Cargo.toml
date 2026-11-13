@@ -9,8 +9,8 @@ keywords = ["hid", "qmk", "keyboard"]
 repository = "https://github.com/FrameworkComputer/qmk_hid"
 
 [dependencies]
-clap = { version = "4.5", features = ["derive"] }
-hidapi = { version = "=2.6.4" }
+clap = { version = "4.6.7", features = ["derive"] }
+hidapi = { version = "2.6.7" }
 
 [build-dependencies]
 static_vcruntime = "3.0"

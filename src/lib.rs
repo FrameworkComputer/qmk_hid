@@ -48,19 +48,17 @@ pub struct Found {
 }
 
 /// Format BCD version
-///
-/// # Examples
-///
-/// ```
-/// let ver = format_bcd(0x0213);
-/// assert_eq!(ver, "2.1.3");
-/// ```
 fn format_bcd(bcd: u16) -> String {
     let bytes = bcd.to_be_bytes();
     let major = bytes[0];
     let minor = (bytes[1] & 0xF0) >> 4;
     let patch = bytes[1] & 0x0F;
     format!("{major}.{minor}.{patch}")
+}
+
+#[test]
+fn formats_bcd_version() {
+    assert_eq!(format_bcd(0x0213), "2.1.3");
 }
 
 const NOT_SET: &str = "NOT SET";
@@ -128,15 +126,15 @@ pub fn find_devices(
             .map(|s| u16::from_str_radix(s, 16).unwrap());
 
         // If filtering for specific VID or PID, skip all that don't match
-        if let Some(args_vid) = args_vid {
-            if vid != args_vid {
-                continue;
-            }
+        if let Some(args_vid) = args_vid
+            && vid != args_vid
+        {
+            continue;
         }
-        if let Some(args_pid) = args_pid {
-            if pid != args_pid {
-                continue;
-            }
+        if let Some(args_pid) = args_pid
+            && pid != args_pid
+        {
+            continue;
         }
 
         match usage_page {

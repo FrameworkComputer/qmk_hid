@@ -2,7 +2,7 @@
 
 use hidapi::HidDevice;
 
-use crate::{raw_hid::*, QmkError};
+use crate::{QmkError, raw_hid::*};
 
 #[repr(u8)]
 pub enum ViaCommandId {

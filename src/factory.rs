@@ -1,8 +1,8 @@
 use hidapi::HidDevice;
 
+use crate::QmkError;
 use crate::raw_hid::send_message;
 use crate::via::ViaCommandId;
-use crate::QmkError;
 
 /// Send a factory command, currently only supported in Framework 16 keyboards
 pub fn send_factory_command(dev: &HidDevice, command: u8, value: u8) -> Result<(), QmkError> {
