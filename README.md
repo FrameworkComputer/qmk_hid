@@ -165,7 +165,7 @@ behavior does not change.
 The command only does something when the firmware has `VIA_EEPROM_ALLOW_RESET` defined.
 
 ```sh
-> qmk_hid via --eeprom-config
+> qmk_hid via --eeprom-reset
 ```
 
 ###### Testing the RGB LEDs
@@ -235,3 +235,18 @@ To avoid needing root privileges to access the keyboard please follow the
 official [QMK guide](https://docs.qmk.fm/#/faq_build?id=linux-udev-rules) for
 how to install udev rules. After doing that, you'll be able to interact with
 the keyboards as a regular user.
+
+### Development checks
+
+Run `cargo fmt --all -- --check`, `cargo clippy --all-targets -- -D warnings`,
+and `cargo test --all-targets`. Linux CI installs libudev and runs these checks.
+
+With a Framework ANSI keyboard (32ac:0012) and RGB macropad (32ac:0013)
+attached, run `cargo test --test hardware -- --ignored --nocapture` to test
+lighting reads and writes. This temporarily changes brightness and macropad
+color, restores their original values, and does not save to EEPROM. The test
+accounts for these modules' firmware brightness quantization.
+
+Lighting options can be combined in one invocation. Percentages must be 0–100.
+Device indication, information, EEPROM reset, and bootloader operations are
+exclusive and cannot be combined with lighting changes or saving.

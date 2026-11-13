@@ -40,8 +40,6 @@ pub enum Color {
     White,
 }
 
-const QMK_INTERFACE: i32 = 0x01;
-
 pub struct Found {
     pub raw_usages: Vec<DeviceInfo>,
     pub console_usages: Vec<DeviceInfo>,
@@ -70,6 +68,14 @@ pub fn find_devices(
     args_vid: Option<&str>,
     args_pid: Option<&str>,
 ) -> Found {
+    // Invalid library filters must not panic or accidentally select every device.
+    let parse = |value: Option<&str>| value.map(|v| u16::from_str_radix(v, 16)).transpose();
+    let (Ok(args_vid), Ok(args_pid)) = (parse(args_vid), parse(args_pid)) else {
+        return Found {
+            raw_usages: vec![],
+            console_usages: vec![],
+        };
+    };
     let mut found: Found = Found {
         raw_usages: vec![],
         console_usages: vec![],
@@ -77,7 +83,6 @@ pub fn find_devices(
     for dev_info in api.device_list() {
         let vid = dev_info.vendor_id();
         let pid = dev_info.product_id();
-        let interface = dev_info.interface_number();
 
         // Print device information
         let usage_page = dev_info.usage_page();
@@ -117,14 +122,6 @@ pub fn find_devices(
             }
         }
 
-        // TODO: Use clap-num for this
-        let args_vid = args_vid
-            .as_ref()
-            .map(|s| u16::from_str_radix(s, 16).unwrap());
-        let args_pid = args_pid
-            .as_ref()
-            .map(|s| u16::from_str_radix(s, 16).unwrap());
-
         // If filtering for specific VID or PID, skip all that don't match
         if let Some(args_vid) = args_vid
             && vid != args_vid
@@ -139,13 +136,7 @@ pub fn find_devices(
 
         match usage_page {
             RAW_USAGE_PAGE => {
-                if interface != QMK_INTERFACE {
-                    println!(
-                        "Something is wrong with {vid}:{pid}. The interface isn't {QMK_INTERFACE}"
-                    );
-                } else {
-                    found.raw_usages.push(dev_info.clone());
-                }
+                found.raw_usages.push(dev_info.clone());
             }
             CONSOLE_USAGE_PAGE => {
                 found.console_usages.push(dev_info.clone());
@@ -161,13 +152,14 @@ pub fn new_hidapi() -> Result<HidApi, HidError> {
     HidApi::new()
 }
 
-pub fn save(save: bool, dev: &HidDevice) {
+pub fn save(save: bool, dev: &HidDevice) -> Result<(), QmkError> {
     if !save {
-        return;
+        return Ok(());
     }
-
-    save_rgb(dev).unwrap();
-    save_backlight(dev).unwrap();
+    // Most modules implement only one lighting channel. Try both for standalone save.
+    let rgb = save_rgb(dev);
+    let backlight = save_backlight(dev);
+    rgb.or(backlight)
 }
 
 pub fn color_as_hue(color: Color) -> u8 {
